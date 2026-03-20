@@ -7,8 +7,47 @@
 - FastAPI
 - その他必要なライブラリは`requirements.txt`に記載　
 
+## APIサーバー
+
+### 起動
+```bash
+uv run uvicorn main:app --host 0.0.0.0 --port 8000
+```
+
+### エンドポイント
+- `GET /health`: ヘルスチェック
+- `POST /generate`: 間違い探し画像の生成
+
+`POST /generate` の入力:
+- `image`: 画像ファイル（JPEG/PNG, 5MB以下）
+- `num_differences`: 間違いの数（1-10, 省略時3）
+- `difficulty`: 難易度（`easy` / `medium` / `hard`, 省略時`medium`）
+- `X-API-Key` ヘッダー: APIキー（デフォルトは `dev-api-key`）
+
+実行例:
+```bash
+curl -X POST "http://localhost:8000/generate" \
+	-H "X-API-Key: dev-api-key" \
+	-F "image=@sample.jpg" \
+	-F "num_differences=3" \
+	-F "difficulty=medium"
+```
+
+返却値:
+- `puzzle_image_base64`: 間違い探し画像（PNG, Base64）
+- `answer_image_base64`: 答え画像（PNG, Base64）
+- `positions`: 間違い箇所の座標配列
+- `processing_time_ms`: 生成処理時間（ms）
+
 ## DeepLabv3+ 実験実装
 `experiment/deeplabv3plus_experiment.py` に、`segmentation-models-pytorch` の `DeepLabV3Plus` を使った実験用 CLI を追加しています。
+
+## 研究アーキテクチャ提案
+- システム全体の研究志向アーキテクチャは `docs/研究アーキテクチャ提案.md` を参照。
+- 要件定義 (`docs/要件定義.md`) と技術調査 (`docs/deep-research-report.md`) を統合し、説明可能性・再現性・難易度制御を重視した設計を整理。
+
+## 実装計画
+- 具体的なマイルストーン・WBS・完了条件は `docs/実装計画.md` を参照。
 
 ### データ配置
 画像とマスクを同名ファイルで以下のように配置します。
