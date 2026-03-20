@@ -18,7 +18,7 @@ def health() -> dict[str, str]:
 
 @router.post("/generate", response_model=GenerateResponse)
 async def generate(
-    image: UploadFile = File(...),
+    image: UploadFile | None = File(default=None),
     num_differences: int = Form(3, ge=1, le=10),
     difficulty: str = Form("medium"),
     seed: int | None = Query(default=None),
@@ -28,6 +28,14 @@ async def generate(
     client_id = check_api_key(x_api_key)
     check_rate_limit(client_id)
     validate_difficulty(difficulty)
+
+    if image is None:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=(
+                "image is required. Send multipart/form-data with the 'image' file field."
+            ),
+        )
 
     started = time.perf_counter()
     source = await load_image(image)

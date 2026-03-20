@@ -14,6 +14,8 @@ class DifferenceCard(BaseModel):
     edit_strength: float
     region_area: int
     difficulty_factor: float
+    naturalness_score: float
+    improvement_attempts: int
     score_breakdown: dict[str, float]
 
 

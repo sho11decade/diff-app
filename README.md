@@ -46,6 +46,30 @@ curl -X POST "http://localhost:8000/generate?seed=42&trace=true" \
 - `difference_cards`: trace有効時の編集根拠データ
 - `trace_log_path`: trace有効時のログ保存先（保存成功時）
 
+### 自然な間違い生成（指標 + 自己改善）
+各差分生成では、候補編集を複数回試行し、自然さスコアが最も高い候補を採用します。
+
+自然さスコアの構成:
+- `mean_abs_diff`: 元領域と編集領域の平均差分（小さすぎても大きすぎても減点）
+- `edge_delta`: エッジ構造差分（構造破壊が大きいほど減点）
+- `change_score`, `edge_score`: 上記を 0-1 に正規化した部分スコア
+- `naturalness_score`: 最終自然さスコア（0-1）
+
+自己改善ループ:
+- 難易度別に試行回数を設定（easy=3, medium=5, hard=7）
+- 各試行で編集強度を自動調整して自然さを改善
+- `difference_cards` の `improvement_attempts` に採用時の試行回数を保存
+
+難易度調整（特徴量サイズ）:
+- 難易度ごとに差分領域サイズ倍率と初期編集強度を分離
+- `easy` は大きめ・強め、`hard` は小さめ・弱めに設定
+- `score_breakdown.target_change` で目標差分量を記録し、過小な差分を抑制
+
+境界なじみ改善:
+- 幾何編集を含む全編集で、貼り付け時にフェザーブレンド（境界ぼかし合成）を適用
+- 自然さ評価もブレンド後の見た目で実施し、境界が不自然な候補は採用されにくくする
+- `score_breakdown.feather_radius` に適用半径を記録
+
 ### 検証用アーティファクト保存
 全リクエストで、`artifact_dir` に処理過程データを保存します。
 
@@ -70,6 +94,14 @@ experiments/
 			step_01_color.png
 			step_02_flip.png
 ```
+
+### トラブルシュート
+- Swagger UIで 422 が返る場合:
+	- `POST /generate` は `image` が必須です。Try it out で画像ファイルを選択してください。
+	- 422の典型例: `{"detail":[{"loc":["body","image"],"msg":"Field required"...}]}`
+- Swaggerの `escaping deep link whitespace` 警告:
+	- API機能には影響しないUI警告です。
+	- 本実装では deep linking を無効化して警告を抑制しています。
 
 ## DeepLabv3+ 実験実装
 `experiment/deeplabv3plus_experiment.py` に、`segmentation-models-pytorch` の `DeepLabV3Plus` を使った実験用 CLI を追加しています。

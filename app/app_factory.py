@@ -8,6 +8,7 @@ def create_app() -> FastAPI:
         title="Diff Generator API",
         description="Input image from user and generate spot-the-difference outputs.",
         version="0.2.0",
+        swagger_ui_parameters={"deepLinking": False},
     )
     app.include_router(generate_router)
     return app
