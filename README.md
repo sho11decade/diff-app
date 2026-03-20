@@ -65,6 +65,28 @@ curl -X POST "http://localhost:8000/generate?seed=42&trace=true" \
 - `easy` は大きめ・強め、`hard` は小さめ・弱めに設定
 - `score_breakdown.target_change` で目標差分量を記録し、過小な差分を抑制
 
+環境変数での調整:
+- 再デプロイ不要で難易度プロファイルを変更できるよう、以下の環境変数をサポート
+- 例:
+
+```bash
+export DIFF_EASY_SIZE_MULTIPLIER=1.30
+export DIFF_MEDIUM_SIZE_MULTIPLIER=1.10
+export DIFF_HARD_SIZE_MULTIPLIER=1.00
+
+export DIFF_EASY_INITIAL_STRENGTH=1.35
+export DIFF_MEDIUM_INITIAL_STRENGTH=1.20
+export DIFF_HARD_INITIAL_STRENGTH=1.05
+
+export DIFF_EASY_TARGET_CHANGE=0.20
+export DIFF_MEDIUM_TARGET_CHANGE=0.15
+export DIFF_HARD_TARGET_CHANGE=0.11
+
+export DIFF_EASY_ATTEMPTS=4
+export DIFF_MEDIUM_ATTEMPTS=6
+export DIFF_HARD_ATTEMPTS=8
+```
+
 境界なじみ改善:
 - 幾何編集を含む全編集で、貼り付け時にフェザーブレンド（境界ぼかし合成）を適用
 - 自然さ評価もブレンド後の見た目で実施し、境界が不自然な候補は採用されにくくする

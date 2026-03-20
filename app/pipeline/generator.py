@@ -7,7 +7,16 @@ from fastapi import HTTPException, UploadFile, status
 from PIL import Image, ImageDraw
 
 from app.api.schemas import DifferenceCard, DifferencePosition
-from app.core.config import ALLOWED_CONTENT_TYPES, MAX_UPLOAD_BYTES, VALID_DIFFICULTIES
+from app.core.config import (
+    ALLOWED_CONTENT_TYPES,
+    DIFFICULTY_PROFILES,
+    DIFF_SIDE_RATIO_MAX,
+    DIFF_SIDE_RATIO_MIN,
+    IMPROVEMENT_ATTEMPTS,
+    MAX_UPLOAD_BYTES,
+    MIN_DIFF_SIDE,
+    VALID_DIFFICULTIES,
+)
 from app.pipeline.editors import apply_random_edit, blend_region_with_feather, difficulty_factor
 from app.pipeline.naturalness import NaturalnessMetrics, evaluate_naturalness
 
@@ -97,43 +106,6 @@ def _difficulty_score_breakdown(
     }
 
 
-def _improvement_attempts(difficulty: str) -> int:
-    mapping = {
-        "easy": 3,
-        "medium": 5,
-        "hard": 7,
-    }
-    return mapping[difficulty]
-
-
-def _difficulty_profile(difficulty: str) -> dict[str, float]:
-    # Tune each difficulty so generated differences are neither too tiny nor too aggressive.
-    mapping = {
-        "easy": {
-            "size_multiplier": 1.20,
-            "initial_strength": 1.30,
-            "naturalness_threshold": 0.60,
-            "target_change": 0.18,
-            "change_tolerance": 0.12,
-        },
-        "medium": {
-            "size_multiplier": 1.05,
-            "initial_strength": 1.15,
-            "naturalness_threshold": 0.58,
-            "target_change": 0.14,
-            "change_tolerance": 0.10,
-        },
-        "hard": {
-            "size_multiplier": 0.95,
-            "initial_strength": 1.00,
-            "naturalness_threshold": 0.55,
-            "target_change": 0.10,
-            "change_tolerance": 0.08,
-        },
-    }
-    return mapping[difficulty]
-
-
 def _feather_radius(box_w: int, box_h: int, difficulty: str, edit_type: str) -> int:
     base = max(2, int(min(box_w, box_h) * 0.10))
     diff_mul = {
@@ -162,10 +134,10 @@ def generate_differences(
     draw = ImageDraw.Draw(answer)
 
     width, height = image.size
-    profile = _difficulty_profile(difficulty)
+    profile = DIFFICULTY_PROFILES[difficulty]
     factor = difficulty_factor(difficulty) * profile["size_multiplier"]
-    min_side = max(32, int(min(width, height) * 0.08 * factor))
-    max_side = max(min_side + 1, int(min(width, height) * 0.20 * factor))
+    min_side = max(MIN_DIFF_SIDE, int(min(width, height) * DIFF_SIDE_RATIO_MIN * factor))
+    max_side = max(min_side + 1, int(min(width, height) * DIFF_SIDE_RATIO_MAX * factor))
 
     positions: list[DifferencePosition] = []
     cards: list[DifferenceCard] = []
@@ -179,7 +151,7 @@ def generate_differences(
         y = rng.randint(0, max(0, height - box_h))
 
         region = edited.crop((x, y, x + box_w, y + box_h))
-        max_attempts = _improvement_attempts(difficulty)
+        max_attempts = IMPROVEMENT_ATTEMPTS[difficulty]
         naturalness_threshold = profile["naturalness_threshold"]
 
         best_region = region
