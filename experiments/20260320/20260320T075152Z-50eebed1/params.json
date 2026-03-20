@@ -1,0 +1,49 @@
+{
+  "trace_id": "20260320T075152Z-50eebed1",
+  "seed": 123,
+  "difficulty": "medium",
+  "num_differences": 2,
+  "processing_time_ms": 9,
+  "positions": [
+    {
+      "x": 44,
+      "y": 196,
+      "width": 24,
+      "height": 28
+    },
+    {
+      "x": 19,
+      "y": 97,
+      "width": 37,
+      "height": 38
+    }
+  ],
+  "difference_cards": [
+    {
+      "index": 0,
+      "edit_type": "color",
+      "edit_strength": 0.82,
+      "region_area": 672,
+      "difficulty_factor": 1.0,
+      "score_breakdown": {
+        "area_ratio": 0.00875,
+        "difficulty_factor": 1.0,
+        "edit_complexity": 0.3,
+        "composite_score": 0.5765
+      }
+    },
+    {
+      "index": 1,
+      "edit_type": "flip",
+      "edit_strength": 1.0,
+      "region_area": 1406,
+      "difficulty_factor": 1.0,
+      "score_breakdown": {
+        "area_ratio": 0.018307,
+        "difficulty_factor": 1.0,
+        "edit_complexity": 0.4,
+        "composite_score": 0.632677
+      }
+    }
+  ]
+}

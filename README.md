@@ -41,9 +41,35 @@ curl -X POST "http://localhost:8000/generate?seed=42&trace=true" \
 - `answer_image_base64`: 答え画像（PNG, Base64）
 - `positions`: 間違い箇所の座標配列
 - `processing_time_ms`: 生成処理時間（ms）
-- `trace_id`: trace有効時の実験ID
+- `artifact_dir`: リクエストごとの保存先ディレクトリ
+- `trace_id`: リクエストごとの実験ID
 - `difference_cards`: trace有効時の編集根拠データ
 - `trace_log_path`: trace有効時のログ保存先（保存成功時）
+
+### 検証用アーティファクト保存
+全リクエストで、`artifact_dir` に処理過程データを保存します。
+
+保存内容:
+- `params.json`: 入力パラメータ、差分座標、差分カード、処理時間
+- `source.png`: 入力画像
+- `puzzle.png`: 生成後画像
+- `answer.png`: 答え画像
+- `step_00_source.png`: 処理開始時点
+- `step_XX_<edit_type>.png`: 各差分適用後の中間画像
+
+保存先例:
+```text
+experiments/
+	20260320/
+		20260320T120000Z-a1b2c3d4/
+			params.json
+			source.png
+			puzzle.png
+			answer.png
+			step_00_source.png
+			step_01_color.png
+			step_02_flip.png
+```
 
 ## DeepLabv3+ 実験実装
 `experiment/deeplabv3plus_experiment.py` に、`segmentation-models-pytorch` の `DeepLabV3Plus` を使った実験用 CLI を追加しています。

@@ -6,7 +6,7 @@ from fastapi import HTTPException, status
 from app.api.schemas import GenerateResponse
 from app.core.security import check_api_key, check_rate_limit
 from app.pipeline.generator import generate_differences, load_image, validate_difficulty
-from app.research.trace import load_trace_log, new_trace_id, save_trace_log
+from app.research.trace import load_trace_log, new_trace_id, save_request_artifacts, save_trace_log
 
 router = APIRouter()
 
@@ -40,12 +40,34 @@ async def generate(
     )
     elapsed_ms = int((time.perf_counter() - started) * 1000)
 
-    trace_id: str | None = None
+    trace_id = new_trace_id()
     trace_log_path: str | None = None
+    artifact_dir: str | None = None
     cards = None
 
+    artifact_images = [
+        ("source", output.source_image),
+        ("puzzle", output.puzzle_image),
+        ("answer", output.answer_image),
+    ]
+    artifact_images.extend(output.step_images)
+
+    artifact_params = {
+        "trace_id": trace_id,
+        "seed": seed,
+        "difficulty": difficulty,
+        "num_differences": num_differences,
+        "processing_time_ms": elapsed_ms,
+        "positions": [position.model_dump() for position in output.positions],
+        "difference_cards": [card.model_dump() for card in output.difference_cards],
+    }
+    artifact_dir = save_request_artifacts(
+        trace_id=trace_id,
+        request_params=artifact_params,
+        images=artifact_images,
+    )
+
     if trace:
-        trace_id = new_trace_id()
         cards = output.difference_cards
         trace_payload = {
             "trace_id": trace_id,
@@ -67,6 +89,7 @@ async def generate(
         seed=seed,
         difference_cards=cards,
         trace_log_path=trace_log_path,
+        artifact_dir=artifact_dir,
     )
 
 

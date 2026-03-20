@@ -26,3 +26,4 @@ class GenerateResponse(BaseModel):
     seed: int | None = None
     difference_cards: list[DifferenceCard] | None = None
     trace_log_path: str | None = None
+    artifact_dir: str | None = None

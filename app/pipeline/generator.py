@@ -13,6 +13,10 @@ from app.pipeline.editors import apply_random_edit, difficulty_factor
 
 @dataclass
 class GenerationOutput:
+    source_image: Image.Image
+    puzzle_image: Image.Image
+    answer_image: Image.Image
+    step_images: list[tuple[str, Image.Image]]
     puzzle_image_base64: str
     answer_image_base64: str
     positions: list[DifferencePosition]
@@ -101,6 +105,7 @@ def generate_differences(
 
     positions: list[DifferencePosition] = []
     cards: list[DifferenceCard] = []
+    step_images: list[tuple[str, Image.Image]] = [("step_00_source", image.copy())]
 
     for idx in range(num_differences):
         box_w = rng.randint(min_side, max_side)
@@ -138,8 +143,13 @@ def generate_differences(
         cy = y + box_h // 2
         radius = max(box_w, box_h) // 2 + 8
         draw.ellipse((cx - radius, cy - radius, cx + radius, cy + radius), outline="red", width=4)
+        step_images.append((f"step_{idx + 1:02d}_{edit_type}", edited.copy()))
 
     return GenerationOutput(
+        source_image=image.copy(),
+        puzzle_image=edited,
+        answer_image=answer,
+        step_images=step_images,
         puzzle_image_base64=image_to_base64_png(edited),
         answer_image_base64=image_to_base64_png(answer),
         positions=positions,

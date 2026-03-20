@@ -1,0 +1,68 @@
+{
+  "trace_id": "20260320T073742Z-12bc39cb",
+  "seed": 111,
+  "difficulty": "medium",
+  "num_differences": 3,
+  "positions": [
+    {
+      "x": 108,
+      "y": 161,
+      "width": 50,
+      "height": 54
+    },
+    {
+      "x": 86,
+      "y": 322,
+      "width": 37,
+      "height": 43
+    },
+    {
+      "x": 93,
+      "y": 343,
+      "width": 41,
+      "height": 31
+    }
+  ],
+  "difference_cards": [
+    {
+      "index": 0,
+      "edit_type": "color",
+      "edit_strength": 0.733,
+      "region_area": 2700,
+      "difficulty_factor": 1.0,
+      "score_breakdown": {
+        "area_ratio": 0.015465,
+        "difficulty_factor": 1.0,
+        "edit_complexity": 0.3,
+        "composite_score": 0.573814
+      }
+    },
+    {
+      "index": 1,
+      "edit_type": "brightness",
+      "edit_strength": 1.139,
+      "region_area": 1591,
+      "difficulty_factor": 1.0,
+      "score_breakdown": {
+        "area_ratio": 0.009113,
+        "difficulty_factor": 1.0,
+        "edit_complexity": 0.2,
+        "composite_score": 0.516355
+      }
+    },
+    {
+      "index": 2,
+      "edit_type": "color",
+      "edit_strength": 0.999,
+      "region_area": 1271,
+      "difficulty_factor": 1.0,
+      "score_breakdown": {
+        "area_ratio": 0.00728,
+        "difficulty_factor": 1.0,
+        "edit_complexity": 0.3,
+        "composite_score": 0.577088
+      }
+    }
+  ],
+  "processing_time_ms": 119
+}
