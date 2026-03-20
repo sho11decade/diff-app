@@ -18,6 +18,7 @@ from app.core.config import (
     VALID_DIFFICULTIES,
 )
 from app.pipeline.editors import apply_random_edit, blend_region_with_feather, difficulty_factor
+from app.pipeline.editors import create_natural_edit_mask
 from app.pipeline.naturalness import NaturalnessMetrics, evaluate_naturalness
 
 
@@ -157,6 +158,7 @@ def generate_differences(
         best_region = region
         best_mode = "flip"
         best_strength = 1.0
+        best_mask_coverage = 0.0
         best_metrics = NaturalnessMetrics(0.0, 0.0, 1.0, 0.0, 0.0)
         chosen_attempts = 1
 
@@ -170,11 +172,13 @@ def generate_differences(
                 strength_scale=strength_scale,
                 preferred_mode=preferred_mode,
             )
+            edit_mask, mask_coverage = create_natural_edit_mask(region.size, rng)
             feather_radius = _feather_radius(box_w, box_h, difficulty, edit_type)
             blended_candidate = blend_region_with_feather(
                 base_region=region,
                 edited_region=candidate_region,
                 feather_radius=feather_radius,
+                edit_mask=edit_mask,
             )
             metrics = evaluate_naturalness(
                 region,
@@ -187,6 +191,7 @@ def generate_differences(
                 best_region = blended_candidate
                 best_mode = edit_type
                 best_strength = edit_strength
+                best_mask_coverage = mask_coverage
                 best_metrics = metrics
                 chosen_attempts = attempt
 
@@ -216,6 +221,7 @@ def generate_differences(
             attempts=chosen_attempts,
         )
         score_breakdown["feather_radius"] = float(_feather_radius(box_w, box_h, difficulty, best_mode))
+        score_breakdown["mask_coverage"] = best_mask_coverage
         score_breakdown["target_change"] = float(profile["target_change"])
         cards.append(
             DifferenceCard(
