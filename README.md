@@ -17,16 +17,19 @@ uv run uvicorn main:app --host 0.0.0.0 --port 8000
 ### エンドポイント
 - `GET /health`: ヘルスチェック
 - `POST /generate`: 間違い探し画像の生成
+- `GET /experiments/{trace_id}`: traceログの取得
 
 `POST /generate` の入力:
 - `image`: 画像ファイル（JPEG/PNG, 5MB以下）
 - `num_differences`: 間違いの数（1-10, 省略時3）
 - `difficulty`: 難易度（`easy` / `medium` / `hard`, 省略時`medium`）
+- `seed` (Query): 乱数シード（同一入力＋同一seedで再現）
+- `trace` (Query): `true` で差分カードとログ出力を有効化
 - `X-API-Key` ヘッダー: APIキー（デフォルトは `dev-api-key`）
 
 実行例:
 ```bash
-curl -X POST "http://localhost:8000/generate" \
+curl -X POST "http://localhost:8000/generate?seed=42&trace=true" \
 	-H "X-API-Key: dev-api-key" \
 	-F "image=@sample.jpg" \
 	-F "num_differences=3" \
@@ -38,6 +41,9 @@ curl -X POST "http://localhost:8000/generate" \
 - `answer_image_base64`: 答え画像（PNG, Base64）
 - `positions`: 間違い箇所の座標配列
 - `processing_time_ms`: 生成処理時間（ms）
+- `trace_id`: trace有効時の実験ID
+- `difference_cards`: trace有効時の編集根拠データ
+- `trace_log_path`: trace有効時のログ保存先（保存成功時）
 
 ## DeepLabv3+ 実験実装
 `experiment/deeplabv3plus_experiment.py` に、`segmentation-models-pytorch` の `DeepLabV3Plus` を使った実験用 CLI を追加しています。
