@@ -1,0 +1,42 @@
+[
+  {
+    "case": "free_01",
+    "input_file": "free_01.jpg",
+    "seed": 1001,
+    "output_dir": "evaluation/free_images/outputs/free_01",
+    "puzzle_path": "evaluation/free_images/outputs/free_01/puzzle.png",
+    "answer_path": "evaluation/free_images/outputs/free_01/answer.png"
+  },
+  {
+    "case": "free_02",
+    "input_file": "free_02.jpg",
+    "seed": 1002,
+    "output_dir": "evaluation/free_images/outputs/free_02",
+    "puzzle_path": "evaluation/free_images/outputs/free_02/puzzle.png",
+    "answer_path": "evaluation/free_images/outputs/free_02/answer.png"
+  },
+  {
+    "case": "free_03",
+    "input_file": "free_03.jpg",
+    "seed": 1003,
+    "output_dir": "evaluation/free_images/outputs/free_03",
+    "puzzle_path": "evaluation/free_images/outputs/free_03/puzzle.png",
+    "answer_path": "evaluation/free_images/outputs/free_03/answer.png"
+  },
+  {
+    "case": "free_04",
+    "input_file": "free_04.jpg",
+    "seed": 1004,
+    "output_dir": "evaluation/free_images/outputs/free_04",
+    "puzzle_path": "evaluation/free_images/outputs/free_04/puzzle.png",
+    "answer_path": "evaluation/free_images/outputs/free_04/answer.png"
+  },
+  {
+    "case": "free_05",
+    "input_file": "free_05.jpg",
+    "seed": 1005,
+    "output_dir": "evaluation/free_images/outputs/free_05",
+    "puzzle_path": "evaluation/free_images/outputs/free_05/puzzle.png",
+    "answer_path": "evaluation/free_images/outputs/free_05/answer.png"
+  }
+]

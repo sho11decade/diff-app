@@ -129,6 +129,34 @@ export DIFF_HARD_MIN_MASK_COVERAGE=0.26
 - 白く平坦な背景（高輝度・低彩度・低テクスチャ）には背景ペナルティを課して回避
 - `score_breakdown.region_score` と `region_background_penalty` で選択根拠を追跡
 
+セグメンテーション連携（本格統合）:
+- DeepLabv3+ チェックポイントを使って前景マップを推定し、領域選択スコアへ統合
+- 前景比率が高い領域を優先し、背景偏重の編集を抑制
+- 主要環境変数:
+	- `DIFF_SEGMENTATION_ENABLED` (`1` or `0`)
+	- `DIFF_SEGMENTATION_CHECKPOINT` (例: `experiment/runs/deeplabv3plus/best.pt`)
+	- `DIFF_SEGMENTATION_CONFIDENCE_THRESHOLD` (既定 0.50)
+	- `DIFF_SEGMENTATION_REGION_BOOST` (既定 0.25)
+	- `DIFF_SEGMENTATION_MIN_FOREGROUND_RATIO` (既定 0.06)
+	- `DIFF_SEGMENTATION_IMAGE_SIZE` (既定 512)
+
+アブレーション自動化:
+- 1ケース実行: `experiment/ablation_case.py`
+- 一括比較実行: `experiment/run_ablation.py`
+- 例（セグメンテーション有無の比較）:
+
+```bash
+uv run python experiment/run_ablation.py \
+	--images TestImage_Picture.jpg TestImage_Illustration.png \
+	--difficulty medium \
+	--seeds 20 \
+	--num-differences 4 \
+	--seg-checkpoint experiment/runs/deeplabv3plus/best.pt \
+	--output experiment/ablation_results.csv
+```
+
+- 出力指標: `avg_naturalness`, `gate_pass_rate`, `fallback_rate`, `avg_region_foreground_ratio`, `mode_counts`
+
 ### 検証用アーティファクト保存
 全リクエストで、`artifact_dir` に処理過程データを保存します。
 

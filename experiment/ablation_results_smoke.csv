@@ -1,0 +1,2 @@
+label,samples,avg_naturalness,gate_pass_rate,fallback_rate,avg_region_foreground_ratio,mode_counts
+baseline_no_seg,18,0.35956622222222223,0.6666666666666666,0.3888888888888889,0.0,"{""brightness"": 4, ""contrast"": 1, ""flip"": 4, ""shift"": 2, ""fallback_visible_contrast"": 2, ""fallback_visible_tint"": 5}"

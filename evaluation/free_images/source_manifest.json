@@ -1,0 +1,26 @@
+{
+  "provider": "Picsum Photos (random photos from Unsplash contributors)",
+  "note": "Check provider terms before redistribution in published materials.",
+  "images": [
+    {
+      "file": "free_01.jpg",
+      "url": "https://picsum.photos/id/1025/1280/960"
+    },
+    {
+      "file": "free_02.jpg",
+      "url": "https://picsum.photos/id/1035/1280/960"
+    },
+    {
+      "file": "free_03.jpg",
+      "url": "https://picsum.photos/id/1043/1280/960"
+    },
+    {
+      "file": "free_04.jpg",
+      "url": "https://picsum.photos/id/1050/1280/960"
+    },
+    {
+      "file": "free_05.jpg",
+      "url": "https://picsum.photos/id/1069/1280/960"
+    }
+  ]
+}

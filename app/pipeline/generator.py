@@ -9,6 +9,7 @@ from PIL import Image, ImageDraw
 
 from app.api.schemas import DifferenceCard, DifferencePosition
 from app.core.config import (
+    AB_DENSITY_CONSTRAINT_ENABLED,
     ALLOWED_CONTENT_TYPES,
     DIFFICULTY_PROFILES,
     DIFF_SIDE_RATIO_MAX,
@@ -16,8 +17,11 @@ from app.core.config import (
     IMPROVEMENT_ATTEMPTS,
     MAX_UPLOAD_BYTES,
     MIN_DIFF_SIDE,
+    SEGMENTATION_MIN_FOREGROUND_RATIO,
+    SEGMENTATION_REGION_BOOST,
     VALID_DIFFICULTIES,
 )
+from app.models.segmentation import get_segmentation_service
 from app.pipeline.editors import apply_random_edit, blend_region_with_feather, difficulty_factor
 from app.pipeline.editors import create_natural_edit_mask
 from app.pipeline.editors import apply_force_visible_edit
@@ -262,6 +266,7 @@ def _select_edit_region(
     min_region_score: float,
     photo_mode: bool,
     existing_positions: list[DifferencePosition],
+    segmentation_map: np.ndarray | None,
     attempts: int = 36,
 ) -> tuple[int, int, int, int, float, dict[str, float]]:
     width, height = image.size
@@ -271,6 +276,9 @@ def _select_edit_region(
     best_features: dict[str, float] = {}
 
     def _is_too_close_or_overlap(x: int, y: int, w: int, h: int) -> bool:
+        if not AB_DENSITY_CONSTRAINT_ENABLED:
+            return False
+
         cx = x + w / 2.0
         cy = y + h / 2.0
 
@@ -322,6 +330,16 @@ def _select_edit_region(
 
         region = image.crop((x, y, x + box_w, y + box_h))
         score, features = _region_features_and_score(region, photo_mode=photo_mode)
+
+        if segmentation_map is not None:
+            roi = segmentation_map[y:y + box_h, x:x + box_w]
+            if roi.size > 0:
+                fg_ratio = float(roi.mean())
+                if fg_ratio < SEGMENTATION_MIN_FOREGROUND_RATIO:
+                    score *= 0.80
+                score = min(1.0, score + (SEGMENTATION_REGION_BOOST * fg_ratio))
+                features["region_foreground_ratio"] = round(fg_ratio, 6)
+                features["segmentation_boost"] = round(SEGMENTATION_REGION_BOOST * fg_ratio, 6)
 
         if score > best_score:
             best = (x, y, box_w, box_h)
@@ -376,6 +394,11 @@ def generate_differences(
     step_images: list[tuple[str, Image.Image]] = [("step_00_source", image.copy())]
     mode_counts = {"brightness": 0, "color": 0, "contrast": 0, "shift": 0, "flip": 0}
 
+    segmentation_map = None
+    segmentation_result = get_segmentation_service().predict_foreground_map(image)
+    if segmentation_result is not None:
+        segmentation_map = segmentation_result.foreground_map
+
     for idx in range(num_differences):
         x, y, box_w, box_h, region_score, region_features = _select_edit_region(
             image=edited,
@@ -385,6 +408,7 @@ def generate_differences(
             min_region_score=profile["min_region_score"],
             photo_mode=photo_mode,
             existing_positions=positions,
+            segmentation_map=segmentation_map,
         )
 
         region = edited.crop((x, y, x + box_w, y + box_h))

@@ -9,6 +9,13 @@ MAX_REQUESTS_PER_MINUTE = int(os.getenv("MAX_REQUESTS_PER_MINUTE", "30"))
 TRACE_OUTPUT_DIR = os.getenv("TRACE_OUTPUT_DIR", "experiments")
 
 
+def _get_bool(name: str, default: bool) -> bool:
+	raw = os.getenv(name)
+	if raw is None:
+		return default
+	return raw.strip().lower() in {"1", "true", "yes", "on"}
+
+
 def _get_float(name: str, default: float) -> float:
 	raw = os.getenv(name)
 	if raw is None:
@@ -75,3 +82,14 @@ IMPROVEMENT_ATTEMPTS: dict[str, int] = {
 MIN_DIFF_SIDE = _get_int("DIFF_MIN_SIDE", 32)
 DIFF_SIDE_RATIO_MIN = _get_float("DIFF_SIDE_RATIO_MIN", 0.08)
 DIFF_SIDE_RATIO_MAX = _get_float("DIFF_SIDE_RATIO_MAX", 0.20)
+
+
+SEGMENTATION_ENABLED = _get_bool("DIFF_SEGMENTATION_ENABLED", False)
+SEGMENTATION_CHECKPOINT_PATH = os.getenv("DIFF_SEGMENTATION_CHECKPOINT", "")
+SEGMENTATION_CONFIDENCE_THRESHOLD = _get_float("DIFF_SEGMENTATION_CONFIDENCE_THRESHOLD", 0.50)
+SEGMENTATION_REGION_BOOST = _get_float("DIFF_SEGMENTATION_REGION_BOOST", 0.25)
+SEGMENTATION_MIN_FOREGROUND_RATIO = _get_float("DIFF_SEGMENTATION_MIN_FOREGROUND_RATIO", 0.06)
+SEGMENTATION_IMAGE_SIZE = _get_int("DIFF_SEGMENTATION_IMAGE_SIZE", 512)
+SEGMENTATION_DEVICE = os.getenv("DIFF_SEGMENTATION_DEVICE", "")
+
+AB_DENSITY_CONSTRAINT_ENABLED = _get_bool("DIFF_DENSITY_CONSTRAINT_ENABLED", True)
