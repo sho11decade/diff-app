@@ -36,6 +36,9 @@ DIFFICULTY_PROFILES: dict[str, dict[str, float]] = {
 		"naturalness_threshold": _get_float("DIFF_EASY_NATURALNESS_THRESHOLD", 0.60),
 		"target_change": _get_float("DIFF_EASY_TARGET_CHANGE", 0.18),
 		"change_tolerance": _get_float("DIFF_EASY_CHANGE_TOLERANCE", 0.12),
+		"min_visible_change": _get_float("DIFF_EASY_MIN_VISIBLE_CHANGE", 0.10),
+		"max_visible_change": _get_float("DIFF_EASY_MAX_VISIBLE_CHANGE", 0.28),
+		"min_mask_coverage": _get_float("DIFF_EASY_MIN_MASK_COVERAGE", 0.34),
 	},
 	"medium": {
 		"size_multiplier": _get_float("DIFF_MEDIUM_SIZE_MULTIPLIER", 1.05),
@@ -43,6 +46,9 @@ DIFFICULTY_PROFILES: dict[str, dict[str, float]] = {
 		"naturalness_threshold": _get_float("DIFF_MEDIUM_NATURALNESS_THRESHOLD", 0.58),
 		"target_change": _get_float("DIFF_MEDIUM_TARGET_CHANGE", 0.14),
 		"change_tolerance": _get_float("DIFF_MEDIUM_CHANGE_TOLERANCE", 0.10),
+		"min_visible_change": _get_float("DIFF_MEDIUM_MIN_VISIBLE_CHANGE", 0.08),
+		"max_visible_change": _get_float("DIFF_MEDIUM_MAX_VISIBLE_CHANGE", 0.24),
+		"min_mask_coverage": _get_float("DIFF_MEDIUM_MIN_MASK_COVERAGE", 0.30),
 	},
 	"hard": {
 		"size_multiplier": _get_float("DIFF_HARD_SIZE_MULTIPLIER", 0.95),
@@ -50,6 +56,9 @@ DIFFICULTY_PROFILES: dict[str, dict[str, float]] = {
 		"naturalness_threshold": _get_float("DIFF_HARD_NATURALNESS_THRESHOLD", 0.55),
 		"target_change": _get_float("DIFF_HARD_TARGET_CHANGE", 0.10),
 		"change_tolerance": _get_float("DIFF_HARD_CHANGE_TOLERANCE", 0.08),
+		"min_visible_change": _get_float("DIFF_HARD_MIN_VISIBLE_CHANGE", 0.06),
+		"max_visible_change": _get_float("DIFF_HARD_MAX_VISIBLE_CHANGE", 0.20),
+		"min_mask_coverage": _get_float("DIFF_HARD_MIN_MASK_COVERAGE", 0.26),
 	},
 }
 

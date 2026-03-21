@@ -102,3 +102,34 @@ def create_natural_edit_mask(
         coverage = sum(v for v in values) / (255.0 * len(values))
 
     return mask, round(coverage, 6)
+
+
+def apply_force_visible_edit(
+    region: Image.Image,
+    rng: random.Random,
+    photo_mode: bool,
+    visibility_boost: float = 1.0,
+) -> tuple[Image.Image, str, float]:
+    # Force detectable change while avoiding heavy dark stains, especially for photos.
+    base = region.convert("RGB")
+    tint_colors = [
+        (210, 150, 120),
+        (120, 170, 210),
+        (180, 210, 120),
+    ]
+    tint = Image.new("RGB", base.size, color=rng.choice(tint_colors))
+
+    if photo_mode:
+        alpha = min(0.38, rng.uniform(0.10, 0.16) * visibility_boost)
+        tinted = Image.blend(base, tint, alpha=alpha)
+        adjusted = ImageEnhance.Color(tinted).enhance(min(1.55, rng.uniform(1.06, 1.18) * visibility_boost))
+        adjusted = ImageEnhance.Contrast(adjusted).enhance(min(1.35, rng.uniform(1.03, 1.10) * visibility_boost))
+        adjusted = ImageEnhance.Brightness(adjusted).enhance(rng.uniform(0.95, 1.08))
+        return adjusted, "fallback_visible", round(alpha, 3)
+
+    alpha = min(0.48, rng.uniform(0.16, 0.24) * visibility_boost)
+    tinted = Image.blend(base, tint, alpha=alpha)
+    adjusted = ImageEnhance.Color(tinted).enhance(min(1.65, rng.uniform(1.08, 1.24) * visibility_boost))
+    adjusted = ImageEnhance.Contrast(adjusted).enhance(min(1.45, rng.uniform(1.05, 1.20) * visibility_boost))
+    adjusted = ImageEnhance.Brightness(adjusted).enhance(rng.uniform(0.90, 1.05))
+    return adjusted, "fallback_visible", round(alpha, 3)

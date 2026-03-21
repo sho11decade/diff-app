@@ -3,6 +3,7 @@ import io
 import random
 from dataclasses import dataclass
 
+import numpy as np
 from fastapi import HTTPException, UploadFile, status
 from PIL import Image, ImageDraw
 
@@ -19,6 +20,7 @@ from app.core.config import (
 )
 from app.pipeline.editors import apply_random_edit, blend_region_with_feather, difficulty_factor
 from app.pipeline.editors import create_natural_edit_mask
+from app.pipeline.editors import apply_force_visible_edit
 from app.pipeline.naturalness import NaturalnessMetrics, evaluate_naturalness
 
 
@@ -88,6 +90,7 @@ def _difficulty_score_breakdown(
         "brightness": 0.20,
         "color": 0.30,
         "flip": 0.40,
+        "fallback_visible": 0.28,
     }[edit_type]
 
     # Rule-based initial score for explainable trace output.
@@ -118,8 +121,40 @@ def _feather_radius(box_w: int, box_h: int, difficulty: str, edit_type: str) -> 
         "brightness": 1.00,
         "color": 1.10,
         "flip": 1.35,
+        "fallback_visible": 1.15,
     }[edit_type]
     return int(base * diff_mul * mode_mul)
+
+
+def _passes_quality_gate(
+    profile: dict[str, float],
+    metrics: NaturalnessMetrics,
+    mask_coverage: float,
+    photo_mode: bool,
+) -> bool:
+    effective_change = _effective_visible_change(metrics.mean_abs_diff, mask_coverage)
+    min_visible = profile["min_visible_change"] * (0.65 if photo_mode else 1.0)
+    max_visible = profile["max_visible_change"] * (1.10 if photo_mode else 1.0)
+    return (
+        min_visible <= effective_change <= max_visible
+        and mask_coverage >= profile["min_mask_coverage"]
+    )
+
+
+def _effective_visible_change(mean_abs_diff: float, mask_coverage: float) -> float:
+    return min(1.0, mean_abs_diff / max(mask_coverage, 0.05))
+
+
+def _is_photo_like(image: Image.Image) -> bool:
+    sample = image.convert("RGB").resize((128, 128))
+    arr = np.asarray(sample, dtype=np.uint8)
+    flat = arr.reshape(-1, 3)
+
+    unique_ratio = len(np.unique(flat, axis=0)) / float(flat.shape[0])
+    gray = np.asarray(sample.convert("L"), dtype=np.float32)
+    texture = float(gray.std())
+
+    return unique_ratio > 0.45 and texture > 22.0
 
 
 def generate_differences(
@@ -136,6 +171,7 @@ def generate_differences(
 
     width, height = image.size
     profile = DIFFICULTY_PROFILES[difficulty]
+    photo_mode = _is_photo_like(image)
     factor = difficulty_factor(difficulty) * profile["size_multiplier"]
     min_side = max(MIN_DIFF_SIDE, int(min(width, height) * DIFF_SIDE_RATIO_MIN * factor))
     max_side = max(min_side + 1, int(min(width, height) * DIFF_SIDE_RATIO_MAX * factor))
@@ -161,6 +197,7 @@ def generate_differences(
         best_mask_coverage = 0.0
         best_metrics = NaturalnessMetrics(0.0, 0.0, 1.0, 0.0, 0.0)
         chosen_attempts = 1
+        best_candidate_score = -1.0
 
         preferred_mode = rng.choice(["brightness", "color", "flip"])
         strength_scale = profile["initial_strength"]
@@ -187,24 +224,80 @@ def generate_differences(
                 tolerance=profile["change_tolerance"],
             )
 
-            if metrics.score > best_metrics.score:
+            gate_ok = _passes_quality_gate(profile, metrics, mask_coverage, photo_mode=photo_mode)
+            effective_change = _effective_visible_change(metrics.mean_abs_diff, mask_coverage)
+
+            candidate_score = metrics.score
+            if not gate_ok:
+                candidate_score -= 0.30
+            if gate_ok:
+                candidate_score += 0.08
+
+            if candidate_score > best_candidate_score:
                 best_region = blended_candidate
                 best_mode = edit_type
                 best_strength = edit_strength
                 best_mask_coverage = mask_coverage
                 best_metrics = metrics
                 chosen_attempts = attempt
+                best_candidate_score = candidate_score
 
-            if metrics.score >= naturalness_threshold:
+            if metrics.score >= naturalness_threshold and gate_ok:
                 break
 
             # Self-improvement: if too strong, reduce strength; if too weak, increase slightly.
-            if metrics.mean_abs_diff > 0.22:
+            if effective_change > profile["max_visible_change"]:
                 strength_scale = max(0.45, strength_scale * 0.8)
-            elif metrics.mean_abs_diff < 0.08:
+            elif effective_change < profile["min_visible_change"] or mask_coverage < profile["min_mask_coverage"]:
                 strength_scale = min(1.35, strength_scale * 1.12)
             else:
                 strength_scale = max(0.55, strength_scale * 0.93)
+
+        if not _passes_quality_gate(profile, best_metrics, best_mask_coverage, photo_mode=photo_mode):
+            # Fallback: force a detectable but still blended change.
+            fallback_best_score = -1.0
+            fallback_steps = [1.0, 1.3, 1.65, 2.0]
+
+            for i, visibility_boost in enumerate(fallback_steps, start=1):
+                fallback_region, fallback_mode, fallback_strength = apply_force_visible_edit(
+                    region=region,
+                    rng=rng,
+                    photo_mode=photo_mode,
+                    visibility_boost=visibility_boost,
+                )
+                fallback_mask, fallback_coverage = create_natural_edit_mask(
+                    region.size,
+                    rng,
+                    min_coverage=max(profile["min_mask_coverage"], min(0.78, 0.38 + 0.07 * i)),
+                    max_coverage=min(0.90, 0.72 + 0.04 * i),
+                )
+                fallback_blended = blend_region_with_feather(
+                    base_region=region,
+                    edited_region=fallback_region,
+                    feather_radius=_feather_radius(box_w, box_h, difficulty, fallback_mode),
+                    edit_mask=fallback_mask,
+                )
+                fallback_metrics = evaluate_naturalness(
+                    region,
+                    fallback_blended,
+                    target_change=max(profile["target_change"], profile["min_visible_change"] + 0.03),
+                    tolerance=profile["change_tolerance"],
+                )
+
+                gate_ok = _passes_quality_gate(profile, fallback_metrics, fallback_coverage, photo_mode=photo_mode)
+                fallback_score = fallback_metrics.score + (0.22 if gate_ok else -0.10) + (0.08 * fallback_coverage)
+
+                if fallback_score > fallback_best_score:
+                    best_region = fallback_blended
+                    best_mode = fallback_mode
+                    best_strength = fallback_strength
+                    best_mask_coverage = fallback_coverage
+                    best_metrics = fallback_metrics
+                    chosen_attempts = max_attempts + i
+                    fallback_best_score = fallback_score
+
+                if gate_ok:
+                    break
 
         edited.paste(best_region, (x, y))
 
@@ -222,7 +315,18 @@ def generate_differences(
         )
         score_breakdown["feather_radius"] = float(_feather_radius(box_w, box_h, difficulty, best_mode))
         score_breakdown["mask_coverage"] = best_mask_coverage
+        score_breakdown["effective_visible_change"] = _effective_visible_change(
+            best_metrics.mean_abs_diff,
+            best_mask_coverage,
+        )
         score_breakdown["target_change"] = float(profile["target_change"])
+        score_breakdown["min_visible_change"] = float(profile["min_visible_change"])
+        score_breakdown["max_visible_change"] = float(profile["max_visible_change"])
+        score_breakdown["min_mask_coverage"] = float(profile["min_mask_coverage"])
+        score_breakdown["quality_gate_passed"] = float(
+            _passes_quality_gate(profile, best_metrics, best_mask_coverage, photo_mode=photo_mode)
+        )
+        score_breakdown["photo_mode"] = float(photo_mode)
         cards.append(
             DifferenceCard(
                 index=idx,

@@ -64,6 +64,7 @@ curl -X POST "http://localhost:8000/generate?seed=42&trace=true" \
 - 難易度ごとに差分領域サイズ倍率と初期編集強度を分離
 - `easy` は大きめ・強め、`hard` は小さめ・弱めに設定
 - `score_breakdown.target_change` で目標差分量を記録し、過小な差分を抑制
+- 可視性ゲート（最小/最大差分量 + 最小マスク被覆率）で「人間に判別不能」な候補を抑制
 
 環境変数での調整:
 - 再デプロイ不要で難易度プロファイルを変更できるよう、以下の環境変数をサポート
@@ -85,6 +86,18 @@ export DIFF_HARD_TARGET_CHANGE=0.11
 export DIFF_EASY_ATTEMPTS=4
 export DIFF_MEDIUM_ATTEMPTS=6
 export DIFF_HARD_ATTEMPTS=8
+
+export DIFF_EASY_MIN_VISIBLE_CHANGE=0.10
+export DIFF_MEDIUM_MIN_VISIBLE_CHANGE=0.08
+export DIFF_HARD_MIN_VISIBLE_CHANGE=0.06
+
+export DIFF_EASY_MAX_VISIBLE_CHANGE=0.28
+export DIFF_MEDIUM_MAX_VISIBLE_CHANGE=0.24
+export DIFF_HARD_MAX_VISIBLE_CHANGE=0.20
+
+export DIFF_EASY_MIN_MASK_COVERAGE=0.34
+export DIFF_MEDIUM_MIN_MASK_COVERAGE=0.30
+export DIFF_HARD_MIN_MASK_COVERAGE=0.26
 ```
 
 境界なじみ改善:
@@ -96,6 +109,12 @@ export DIFF_HARD_ATTEMPTS=8
 - 編集領域は矩形全体ではなく、不定形のソフトマスク（楕円・角丸形状）で適用
 - 境界フェザーと不定形マスクを合成して、四角い境界線が残らないようにする
 - `score_breakdown.mask_coverage` で実際に変化した領域率を追跡
+- `score_breakdown.quality_gate_passed` で品質ゲート通過可否を確認
+
+品質フォールバック:
+- 品質ゲート未通過時は `fallback_visible` 編集に切替え、可視性を担保
+- 単色背景などでも `mean_abs_diff` が極端に小さくならないよう補正
+- 写真(`photo_mode=1`)では品質ゲートの可視差分しきい値を自動緩和し、過補正を抑制
 
 ### 検証用アーティファクト保存
 全リクエストで、`artifact_dir` に処理過程データを保存します。
