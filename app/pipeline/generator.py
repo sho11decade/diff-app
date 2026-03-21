@@ -89,6 +89,7 @@ def _difficulty_score_breakdown(
     edit_complexity = {
         "brightness": 0.20,
         "color": 0.30,
+        "contrast": 0.26,
         "flip": 0.40,
         "fallback_visible_contrast": 0.24,
         "fallback_visible_tint": 0.30,
@@ -121,6 +122,7 @@ def _feather_radius(box_w: int, box_h: int, difficulty: str, edit_type: str) -> 
     mode_mul = {
         "brightness": 1.00,
         "color": 1.10,
+        "contrast": 1.06,
         "flip": 1.35,
         "fallback_visible_contrast": 1.05,
         "fallback_visible_tint": 1.15,
@@ -132,19 +134,34 @@ def _choose_edit_mode(
     rng: random.Random,
     mode_counts: dict[str, int],
     photo_mode: bool,
+    region_features: dict[str, float],
 ) -> str:
+    mean_sat = region_features.get("region_mean_saturation", 0.3)
+    bright_ratio = region_features.get("region_bright_ratio", 0.3)
+
     if photo_mode:
         base_weights = {
-            "brightness": 0.38,
-            "color": 0.24,
-            "flip": 0.38,
+            "brightness": 0.32,
+            "color": 0.22,
+            "contrast": 0.12,
+            "flip": 0.34,
         }
     else:
         base_weights = {
-            "brightness": 0.33,
-            "color": 0.34,
-            "flip": 0.33,
+            "brightness": 0.25,
+            "color": 0.40,
+            "contrast": 0.10,
+            "flip": 0.25,
         }
+
+    # Low-saturation / bright regions tend to look more natural with luminance edits.
+    if mean_sat < 0.22:
+        base_weights["contrast"] += 0.04
+        base_weights["brightness"] += 0.05
+        base_weights["color"] = max(0.14, base_weights["color"] - 0.08)
+    if bright_ratio > 0.55:
+        base_weights["flip"] = max(0.14, base_weights["flip"] - 0.06)
+        base_weights["contrast"] += 0.04
 
     weighted = []
     total = 0.0
@@ -170,11 +187,12 @@ def _passes_quality_gate(
     photo_mode: bool,
 ) -> bool:
     effective_change = _effective_visible_change(metrics.mean_abs_diff, mask_coverage)
-    min_visible = profile["min_visible_change"] * (0.65 if photo_mode else 1.0)
+    min_visible = profile["min_visible_change"] * (0.58 if photo_mode else 0.90)
     max_visible = profile["max_visible_change"] * (1.10 if photo_mode else 1.0)
+    min_coverage = profile["min_mask_coverage"] * (1.0 if photo_mode else 0.92)
     return (
         min_visible <= effective_change <= max_visible
-        and mask_coverage >= profile["min_mask_coverage"]
+        and mask_coverage >= min_coverage
     )
 
 
@@ -290,7 +308,7 @@ def generate_differences(
     positions: list[DifferencePosition] = []
     cards: list[DifferenceCard] = []
     step_images: list[tuple[str, Image.Image]] = [("step_00_source", image.copy())]
-    mode_counts = {"brightness": 0, "color": 0, "flip": 0}
+    mode_counts = {"brightness": 0, "color": 0, "contrast": 0, "flip": 0}
 
     for idx in range(num_differences):
         x, y, box_w, box_h, region_score, region_features = _select_edit_region(
@@ -317,14 +335,24 @@ def generate_differences(
         strength_scale = profile["initial_strength"]
 
         for attempt in range(1, max_attempts + 1):
-            preferred_mode = _choose_edit_mode(rng, mode_counts=mode_counts, photo_mode=photo_mode)
+            preferred_mode = _choose_edit_mode(
+                rng,
+                mode_counts=mode_counts,
+                photo_mode=photo_mode,
+                region_features=region_features,
+            )
             candidate_region, edit_type, edit_strength = apply_random_edit(
                 region=region,
                 rng=rng,
                 strength_scale=strength_scale,
                 preferred_mode=preferred_mode,
             )
-            edit_mask, mask_coverage = create_natural_edit_mask(region.size, rng)
+            edit_mask, mask_coverage = create_natural_edit_mask(
+                region.size,
+                rng,
+                min_coverage=profile["min_mask_coverage"],
+                max_coverage=min(0.82, profile["min_mask_coverage"] + 0.34),
+            )
             feather_radius = _feather_radius(box_w, box_h, difficulty, edit_type)
             blended_candidate = blend_region_with_feather(
                 base_region=region,
@@ -372,13 +400,17 @@ def generate_differences(
             # Fallback: force a detectable but still blended change.
             fallback_best_score = -1.0
             fallback_steps = [1.0, 1.3, 1.65, 2.0]
+            mean_sat = region_features.get("region_mean_saturation", 0.3)
+            fallback_order = ["contrast", "tint"] if mean_sat < 0.24 else ["tint", "contrast"]
 
             for i, visibility_boost in enumerate(fallback_steps, start=1):
+                preferred_strategy = fallback_order[(i - 1) % len(fallback_order)]
                 fallback_region, fallback_mode, fallback_strength = apply_force_visible_edit(
                     region=region,
                     rng=rng,
                     photo_mode=photo_mode,
                     visibility_boost=visibility_boost,
+                    preferred_strategy=preferred_strategy,
                 )
                 fallback_mask, fallback_coverage = create_natural_edit_mask(
                     region.size,

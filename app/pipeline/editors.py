@@ -18,17 +18,22 @@ def apply_random_edit(
     strength_scale: float = 1.0,
     preferred_mode: str | None = None,
 ) -> tuple[Image.Image, str, float]:
-    mode = preferred_mode or rng.choice(["brightness", "color", "flip"])
+    mode = preferred_mode or rng.choice(["brightness", "color", "contrast", "flip"])
 
     if mode == "brightness":
-        delta = rng.uniform(-0.35, 0.35) * strength_scale
-        factor = max(0.65, min(1.35, 1.0 + delta))
+        delta = rng.uniform(-0.45, 0.45) * strength_scale
+        factor = max(0.58, min(1.42, 1.0 + delta))
         return ImageEnhance.Brightness(region).enhance(factor), mode, factor
 
     if mode == "color":
         delta = rng.uniform(-0.7, 0.7) * strength_scale
         factor = max(0.5, min(1.7, 1.0 + delta))
         return ImageEnhance.Color(region).enhance(factor), mode, factor
+
+    if mode == "contrast":
+        delta = rng.uniform(-0.60, 0.60) * strength_scale
+        factor = max(0.52, min(1.58, 1.0 + delta))
+        return ImageEnhance.Contrast(region).enhance(factor), mode, factor
 
     return ImageOps.mirror(region), mode, 1.0
 
@@ -109,6 +114,7 @@ def apply_force_visible_edit(
     rng: random.Random,
     photo_mode: bool,
     visibility_boost: float = 1.0,
+    preferred_strategy: str | None = None,
 ) -> tuple[Image.Image, str, float]:
     # Force detectable change while avoiding heavy dark stains, especially for photos.
     base = region.convert("RGB")
@@ -119,7 +125,7 @@ def apply_force_visible_edit(
     ]
     tint = Image.new("RGB", base.size, color=rng.choice(tint_colors))
 
-    strategy = rng.choice(["contrast", "tint"])
+    strategy = preferred_strategy or rng.choice(["contrast", "tint"])
 
     if strategy == "contrast":
         adjusted = ImageEnhance.Contrast(base).enhance(min(1.55, rng.uniform(1.12, 1.26) * visibility_boost))
