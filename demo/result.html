@@ -1,0 +1,37 @@
+<main id="app" class="container">
+  <section class="panel hero">
+    <h1>生成結果</h1>
+    <p id="meta"></p>
+  </section>
+
+  <section class="panel">
+    <div class="actions">
+      <a id="downloadPuzzle" class="btn" download="puzzle.png">処理後画像をダウンロード</a>
+      <a id="downloadAnswer" class="btn outline" download="answer.png">答え画像をダウンロード</a>
+      <a class="btn ghost" href="/demo">別画像でやり直す</a>
+    </div>
+  </section>
+
+  <section class="panel game">
+    <h2>左右の画像を見比べてクリック</h2>
+    <p id="progress"></p>
+    <div class="pair-grid">
+      <div id="stage-left" class="stage">
+        <img id="sourceImage" alt="source">
+        <div id="markers-left" class="markers"></div>
+      </div>
+      <div id="stage-right" class="stage">
+        <img id="puzzleImage" alt="puzzle">
+        <div id="markers-right" class="markers"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel answer">
+    <h2>答え</h2>
+    <img id="answerImage" alt="answer">
+  </section>
+
+  <script id="result-data" type="application/json">__RESULT_JSON__</script>
+  <script src="/demo-assets/result-v2.js"></script>
+</main>

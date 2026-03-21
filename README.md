@@ -18,6 +18,13 @@ uv run uvicorn main:app --host 0.0.0.0 --port 8000
 - `GET /health`: ヘルスチェック
 - `POST /generate`: 間違い探し画像の生成
 - `GET /experiments/{trace_id}`: traceログの取得
+- `GET /demo`: HTMXベースのデモUI
+
+### デモUI
+- ブラウザで `http://localhost:8000/demo` にアクセス
+- メインページ: 画像アップロード、プレビュー、パラメータ指定
+- 結果ページ: 元画像と処理後画像の左右比較、処理後画像/答え画像のダウンロード
+- インタラクティブゲーム: 左右どちらの画像をクリックしても、正解時に両画像へ丸を表示
 
 `POST /generate` の入力:
 - `image`: 画像ファイル（JPEG/PNG, 5MB以下）
@@ -161,6 +168,9 @@ experiments/
 ## 研究アーキテクチャ提案
 - システム全体の研究志向アーキテクチャは `docs/研究アーキテクチャ提案.md` を参照。
 - 要件定義 (`docs/要件定義.md`) と技術調査 (`docs/deep-research-report.md`) を統合し、説明可能性・再現性・難易度制御を重視した設計を整理。
+- Draw.io 図:
+	- 英語版: `docs/architecture.drawio`
+	- 日本語・研究発表向け: `docs/architecture_ja_presentation.drawio`
 
 ## 実装計画
 - 具体的なマイルストーン・WBS・完了条件は `docs/実装計画.md` を参照。

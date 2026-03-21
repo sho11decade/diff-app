@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Diff Demo | Upload</title>
+  <link rel="stylesheet" href="/demo-assets/style.css">
+  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+</head>
+<body class="bg-grid">
+  <main id="app" class="container">
+    <section class="panel hero">
+      <h1>4つのまちがいを探そう</h1>
+      <p>誌面風の左右比較で遊べるデモです。画像をアップロードして開始してください。</p>
+    </section>
+
+    <section class="panel">
+      <form
+        class="form"
+        hx-post="/demo/process"
+        hx-encoding="multipart/form-data"
+        hx-target="#app"
+        hx-swap="outerHTML"
+      >
+        <div class="grid two">
+          <label>
+            <span>画像ファイル</span>
+            <input id="imageInput" type="file" name="image" accept="image/png,image/jpeg" required>
+          </label>
+          <label>
+            <span>シード（任意）</span>
+            <input type="number" name="seed" placeholder="例: 42">
+          </label>
+        </div>
+
+        <div class="grid two">
+          <label>
+            <span>間違い数</span>
+            <input type="number" name="num_differences" min="1" max="10" value="4" required>
+          </label>
+          <label>
+            <span>難易度</span>
+            <select name="difficulty">
+              <option value="easy">easy</option>
+              <option value="medium" selected>medium</option>
+              <option value="hard">hard</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="preview-wrap">
+          <p>アップロードプレビュー</p>
+          <img id="preview" class="preview" alt="preview" hidden>
+        </div>
+
+        <button type="submit" class="btn">生成する</button>
+        <div class="loading htmx-indicator">生成中...</div>
+      </form>
+    </section>
+  </main>
+
+  <script>
+    const input = document.getElementById('imageInput');
+    const preview = document.getElementById('preview');
+
+    input.addEventListener('change', (event) => {
+      const file = event.target.files && event.target.files[0];
+      if (!file) {
+        preview.hidden = true;
+        return;
+      }
+      const url = URL.createObjectURL(file);
+      preview.src = url;
+      preview.hidden = false;
+    });
+  </script>
+</body>
+</html>

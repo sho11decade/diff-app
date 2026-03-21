@@ -30,6 +30,7 @@ class GenerationOutput:
     puzzle_image: Image.Image
     answer_image: Image.Image
     step_images: list[tuple[str, Image.Image]]
+    source_image_base64: str
     puzzle_image_base64: str
     answer_image_base64: str
     positions: list[DifferencePosition]
@@ -90,6 +91,7 @@ def _difficulty_score_breakdown(
         "brightness": 0.20,
         "color": 0.30,
         "contrast": 0.26,
+        "shift": 0.44,
         "flip": 0.40,
         "fallback_visible_contrast": 0.24,
         "fallback_visible_tint": 0.30,
@@ -123,6 +125,7 @@ def _feather_radius(box_w: int, box_h: int, difficulty: str, edit_type: str) -> 
         "brightness": 1.00,
         "color": 1.10,
         "contrast": 1.06,
+        "shift": 1.28,
         "flip": 1.35,
         "fallback_visible_contrast": 1.05,
         "fallback_visible_tint": 1.15,
@@ -141,26 +144,29 @@ def _choose_edit_mode(
 
     if photo_mode:
         base_weights = {
-            "brightness": 0.32,
-            "color": 0.22,
+            "brightness": 0.24,
+            "color": 0.12,
             "contrast": 0.12,
-            "flip": 0.34,
+            "shift": 0.26,
+            "flip": 0.26,
         }
     else:
         base_weights = {
-            "brightness": 0.25,
-            "color": 0.40,
+            "brightness": 0.22,
+            "color": 0.30,
             "contrast": 0.10,
-            "flip": 0.25,
+            "shift": 0.18,
+            "flip": 0.20,
         }
 
     # Low-saturation / bright regions tend to look more natural with luminance edits.
     if mean_sat < 0.22:
         base_weights["contrast"] += 0.04
-        base_weights["brightness"] += 0.05
+        base_weights["brightness"] += 0.03
+        base_weights["shift"] += 0.03
         base_weights["color"] = max(0.14, base_weights["color"] - 0.08)
     if bright_ratio > 0.55:
-        base_weights["flip"] = max(0.14, base_weights["flip"] - 0.06)
+        base_weights["flip"] = max(0.12, base_weights["flip"] - 0.06)
         base_weights["contrast"] += 0.04
 
     weighted = []
@@ -255,6 +261,7 @@ def _select_edit_region(
     max_side: int,
     min_region_score: float,
     photo_mode: bool,
+    existing_positions: list[DifferencePosition],
     attempts: int = 36,
 ) -> tuple[int, int, int, int, float, dict[str, float]]:
     width, height = image.size
@@ -263,12 +270,55 @@ def _select_edit_region(
     best_score = -1.0
     best_features: dict[str, float] = {}
 
+    def _is_too_close_or_overlap(x: int, y: int, w: int, h: int) -> bool:
+        cx = x + w / 2.0
+        cy = y + h / 2.0
+
+        for pos in existing_positions:
+            ex = pos.x
+            ey = pos.y
+            ew = pos.width
+            eh = pos.height
+            ecx = ex + ew / 2.0
+            ecy = ey + eh / 2.0
+
+            # Keep a minimum center distance so neighboring differences are separable.
+            min_center_dist = 0.95 * ((max(w, h) + max(ew, eh)) / 2.0)
+            center_dist = ((cx - ecx) ** 2 + (cy - ecy) ** 2) ** 0.5
+            if center_dist < min_center_dist:
+                return True
+
+            # Reject heavy overlap to avoid being perceived as one single difference.
+            ix0 = max(x, ex)
+            iy0 = max(y, ey)
+            ix1 = min(x + w, ex + ew)
+            iy1 = min(y + h, ey + eh)
+            inter_w = max(0, ix1 - ix0)
+            inter_h = max(0, iy1 - iy0)
+            inter = inter_w * inter_h
+            if inter <= 0:
+                continue
+
+            union = (w * h) + (ew * eh) - inter
+            iou = inter / max(1, union)
+            if iou > 0.06:
+                return True
+
+        return False
+
+    fallback_best = None
+    fallback_best_score = -1.0
+    fallback_best_features: dict[str, float] = {}
+
     for _ in range(attempts):
         box_w = rng.randint(min_side, max_side)
         box_h = rng.randint(min_side, max_side)
 
         x = rng.randint(0, max(0, width - box_w))
         y = rng.randint(0, max(0, height - box_h))
+
+        if _is_too_close_or_overlap(x, y, box_w, box_h):
+            continue
 
         region = image.crop((x, y, x + box_w, y + box_h))
         score, features = _region_features_and_score(region, photo_mode=photo_mode)
@@ -281,7 +331,23 @@ def _select_edit_region(
         if score >= min_region_score:
             return x, y, box_w, box_h, score, features
 
-    # Fallback: return best candidate even if threshold not reached.
+        if score > fallback_best_score:
+            fallback_best = (x, y, box_w, box_h)
+            fallback_best_score = score
+            fallback_best_features = features
+
+    # Fallback priority: distance-constrained best, then globally best.
+    if fallback_best is not None:
+        return (
+            fallback_best[0],
+            fallback_best[1],
+            fallback_best[2],
+            fallback_best[3],
+            fallback_best_score,
+            fallback_best_features,
+        )
+
+    # Last resort if constraints are too strict on tiny images.
     assert best is not None
     return best[0], best[1], best[2], best[3], best_score, best_features
 
@@ -308,7 +374,7 @@ def generate_differences(
     positions: list[DifferencePosition] = []
     cards: list[DifferenceCard] = []
     step_images: list[tuple[str, Image.Image]] = [("step_00_source", image.copy())]
-    mode_counts = {"brightness": 0, "color": 0, "contrast": 0, "flip": 0}
+    mode_counts = {"brightness": 0, "color": 0, "contrast": 0, "shift": 0, "flip": 0}
 
     for idx in range(num_differences):
         x, y, box_w, box_h, region_score, region_features = _select_edit_region(
@@ -318,6 +384,7 @@ def generate_differences(
             max_side=max_side,
             min_region_score=profile["min_region_score"],
             photo_mode=photo_mode,
+            existing_positions=positions,
         )
 
         region = edited.crop((x, y, x + box_w, y + box_h))
@@ -504,6 +571,7 @@ def generate_differences(
         puzzle_image=edited,
         answer_image=answer,
         step_images=step_images,
+        source_image_base64=image_to_base64_png(image),
         puzzle_image_base64=image_to_base64_png(edited),
         answer_image_base64=image_to_base64_png(answer),
         positions=positions,

@@ -18,7 +18,7 @@ def apply_random_edit(
     strength_scale: float = 1.0,
     preferred_mode: str | None = None,
 ) -> tuple[Image.Image, str, float]:
-    mode = preferred_mode or rng.choice(["brightness", "color", "contrast", "flip"])
+    mode = preferred_mode or rng.choice(["brightness", "color", "contrast", "shift", "flip"])
 
     if mode == "brightness":
         delta = rng.uniform(-0.45, 0.45) * strength_scale
@@ -34,6 +34,27 @@ def apply_random_edit(
         delta = rng.uniform(-0.60, 0.60) * strength_scale
         factor = max(0.52, min(1.58, 1.0 + delta))
         return ImageEnhance.Contrast(region).enhance(factor), mode, factor
+
+    if mode == "shift":
+        w, h = region.size
+        max_dx = max(2, int(w * 0.16 * strength_scale))
+        max_dy = max(2, int(h * 0.16 * strength_scale))
+        dx = rng.randint(-max_dx, max_dx)
+        dy = rng.randint(-max_dy, max_dy)
+        if dx == 0 and dy == 0:
+            dx = 1
+
+        fill = region.resize((1, 1), resample=Image.Resampling.BILINEAR).getpixel((0, 0))
+        shifted = region.transform(
+            region.size,
+            Image.Transform.AFFINE,
+            (1, 0, dx, 0, 1, dy),
+            resample=Image.Resampling.BICUBIC,
+            fillcolor=fill,
+        )
+        # Slight sharpness bump keeps local object contour change noticeable.
+        shifted = ImageEnhance.Sharpness(shifted).enhance(rng.uniform(1.05, 1.28))
+        return shifted, mode, float(max(abs(dx), abs(dy)))
 
     return ImageOps.mirror(region), mode, 1.0
 
