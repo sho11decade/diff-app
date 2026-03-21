@@ -119,17 +119,24 @@ def apply_force_visible_edit(
     ]
     tint = Image.new("RGB", base.size, color=rng.choice(tint_colors))
 
-    if photo_mode:
-        alpha = min(0.38, rng.uniform(0.10, 0.16) * visibility_boost)
-        tinted = Image.blend(base, tint, alpha=alpha)
-        adjusted = ImageEnhance.Color(tinted).enhance(min(1.55, rng.uniform(1.06, 1.18) * visibility_boost))
-        adjusted = ImageEnhance.Contrast(adjusted).enhance(min(1.35, rng.uniform(1.03, 1.10) * visibility_boost))
-        adjusted = ImageEnhance.Brightness(adjusted).enhance(rng.uniform(0.95, 1.08))
-        return adjusted, "fallback_visible", round(alpha, 3)
+    strategy = rng.choice(["contrast", "tint"])
 
-    alpha = min(0.48, rng.uniform(0.16, 0.24) * visibility_boost)
+    if strategy == "contrast":
+        adjusted = ImageEnhance.Contrast(base).enhance(min(1.55, rng.uniform(1.12, 1.26) * visibility_boost))
+        adjusted = ImageEnhance.Brightness(adjusted).enhance(rng.uniform(0.94, 1.08))
+        return adjusted, "fallback_visible_contrast", round(visibility_boost, 3)
+
+    if photo_mode:
+        alpha = min(0.34, rng.uniform(0.08, 0.14) * visibility_boost)
+        tinted = Image.blend(base, tint, alpha=alpha)
+        adjusted = ImageEnhance.Color(tinted).enhance(min(1.45, rng.uniform(1.05, 1.16) * visibility_boost))
+        adjusted = ImageEnhance.Contrast(adjusted).enhance(min(1.28, rng.uniform(1.02, 1.10) * visibility_boost))
+        adjusted = ImageEnhance.Brightness(adjusted).enhance(rng.uniform(0.95, 1.08))
+        return adjusted, "fallback_visible_tint", round(alpha, 3)
+
+    alpha = min(0.44, rng.uniform(0.14, 0.22) * visibility_boost)
     tinted = Image.blend(base, tint, alpha=alpha)
-    adjusted = ImageEnhance.Color(tinted).enhance(min(1.65, rng.uniform(1.08, 1.24) * visibility_boost))
-    adjusted = ImageEnhance.Contrast(adjusted).enhance(min(1.45, rng.uniform(1.05, 1.20) * visibility_boost))
-    adjusted = ImageEnhance.Brightness(adjusted).enhance(rng.uniform(0.90, 1.05))
-    return adjusted, "fallback_visible", round(alpha, 3)
+    adjusted = ImageEnhance.Color(tinted).enhance(min(1.60, rng.uniform(1.08, 1.22) * visibility_boost))
+    adjusted = ImageEnhance.Contrast(adjusted).enhance(min(1.40, rng.uniform(1.04, 1.18) * visibility_boost))
+    adjusted = ImageEnhance.Brightness(adjusted).enhance(rng.uniform(0.92, 1.06))
+    return adjusted, "fallback_visible_tint", round(alpha, 3)

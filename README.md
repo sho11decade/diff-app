@@ -58,6 +58,7 @@ curl -X POST "http://localhost:8000/generate?seed=42&trace=true" \
 自己改善ループ:
 - 難易度別に試行回数を設定（easy=3, medium=5, hard=7）
 - 各試行で編集強度を自動調整して自然さを改善
+- 編集モードは使用回数に応じた重み付き選択を行い、特定モードへの偏りを抑制
 - `difference_cards` の `improvement_attempts` に採用時の試行回数を保存
 
 難易度調整（特徴量サイズ）:
@@ -112,9 +113,14 @@ export DIFF_HARD_MIN_MASK_COVERAGE=0.26
 - `score_breakdown.quality_gate_passed` で品質ゲート通過可否を確認
 
 品質フォールバック:
-- 品質ゲート未通過時は `fallback_visible` 編集に切替え、可視性を担保
+- 品質ゲート未通過時は `fallback_visible_contrast` / `fallback_visible_tint` を状況に応じて適用
 - 単色背景などでも `mean_abs_diff` が極端に小さくならないよう補正
 - 写真(`photo_mode=1`)では品質ゲートの可視差分しきい値を自動緩和し、過補正を抑制
+
+背景回避の領域選択:
+- 編集領域はランダム選択ではなく、領域スコアに基づいて選択
+- 白く平坦な背景（高輝度・低彩度・低テクスチャ）には背景ペナルティを課して回避
+- `score_breakdown.region_score` と `region_background_penalty` で選択根拠を追跡
 
 ### 検証用アーティファクト保存
 全リクエストで、`artifact_dir` に処理過程データを保存します。

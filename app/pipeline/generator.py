@@ -90,7 +90,8 @@ def _difficulty_score_breakdown(
         "brightness": 0.20,
         "color": 0.30,
         "flip": 0.40,
-        "fallback_visible": 0.28,
+        "fallback_visible_contrast": 0.24,
+        "fallback_visible_tint": 0.30,
     }[edit_type]
 
     # Rule-based initial score for explainable trace output.
@@ -121,9 +122,45 @@ def _feather_radius(box_w: int, box_h: int, difficulty: str, edit_type: str) -> 
         "brightness": 1.00,
         "color": 1.10,
         "flip": 1.35,
-        "fallback_visible": 1.15,
+        "fallback_visible_contrast": 1.05,
+        "fallback_visible_tint": 1.15,
     }[edit_type]
     return int(base * diff_mul * mode_mul)
+
+
+def _choose_edit_mode(
+    rng: random.Random,
+    mode_counts: dict[str, int],
+    photo_mode: bool,
+) -> str:
+    if photo_mode:
+        base_weights = {
+            "brightness": 0.38,
+            "color": 0.24,
+            "flip": 0.38,
+        }
+    else:
+        base_weights = {
+            "brightness": 0.33,
+            "color": 0.34,
+            "flip": 0.33,
+        }
+
+    weighted = []
+    total = 0.0
+    for mode, w in base_weights.items():
+        # Penalize overused mode to avoid one-mode domination.
+        adjusted = w / (1.0 + 0.75 * mode_counts.get(mode, 0))
+        weighted.append((mode, adjusted))
+        total += adjusted
+
+    pick = rng.random() * total
+    acc = 0.0
+    for mode, w in weighted:
+        acc += w
+        if pick <= acc:
+            return mode
+    return weighted[-1][0]
 
 
 def _passes_quality_gate(
@@ -157,6 +194,80 @@ def _is_photo_like(image: Image.Image) -> bool:
     return unique_ratio > 0.45 and texture > 22.0
 
 
+def _region_features_and_score(region: Image.Image, photo_mode: bool) -> tuple[float, dict[str, float]]:
+    rgb = np.asarray(region.convert("RGB"), dtype=np.float32)
+    gray = np.asarray(region.convert("L"), dtype=np.float32)
+    hsv = np.asarray(region.convert("HSV"), dtype=np.float32)
+
+    lum = gray / 255.0
+    sat = hsv[:, :, 1] / 255.0
+
+    mean_lum = float(lum.mean())
+    std_lum = float(lum.std())
+    mean_sat = float(sat.mean())
+    bright_ratio = float((lum > 0.86).mean())
+
+    # Background-like region heuristic: bright + low saturation + low texture.
+    background_penalty = 0.0
+    if mean_lum > 0.78 and mean_sat < 0.20:
+        background_penalty += 0.45
+    if bright_ratio > 0.62:
+        background_penalty += 0.30
+    if std_lum < (0.08 if photo_mode else 0.05):
+        background_penalty += 0.25
+
+    # Prefer textured / meaningful regions; avoid flat bright backgrounds.
+    score = 0.45 * std_lum + 0.25 * mean_sat + 0.20 * (1.0 - bright_ratio) + 0.10 * (1.0 - mean_lum)
+    score = max(0.0, min(1.0, score - background_penalty))
+
+    features = {
+        "region_mean_luminance": round(mean_lum, 6),
+        "region_std_luminance": round(std_lum, 6),
+        "region_mean_saturation": round(mean_sat, 6),
+        "region_bright_ratio": round(bright_ratio, 6),
+        "region_background_penalty": round(background_penalty, 6),
+    }
+    return round(score, 6), features
+
+
+def _select_edit_region(
+    image: Image.Image,
+    rng: random.Random,
+    min_side: int,
+    max_side: int,
+    min_region_score: float,
+    photo_mode: bool,
+    attempts: int = 36,
+) -> tuple[int, int, int, int, float, dict[str, float]]:
+    width, height = image.size
+
+    best = None
+    best_score = -1.0
+    best_features: dict[str, float] = {}
+
+    for _ in range(attempts):
+        box_w = rng.randint(min_side, max_side)
+        box_h = rng.randint(min_side, max_side)
+
+        x = rng.randint(0, max(0, width - box_w))
+        y = rng.randint(0, max(0, height - box_h))
+
+        region = image.crop((x, y, x + box_w, y + box_h))
+        score, features = _region_features_and_score(region, photo_mode=photo_mode)
+
+        if score > best_score:
+            best = (x, y, box_w, box_h)
+            best_score = score
+            best_features = features
+
+        if score >= min_region_score:
+            return x, y, box_w, box_h, score, features
+
+    # Fallback: return best candidate even if threshold not reached.
+    assert best is not None
+    return best[0], best[1], best[2], best[3], best_score, best_features
+
+
 def generate_differences(
     image: Image.Image,
     num_differences: int,
@@ -179,13 +290,17 @@ def generate_differences(
     positions: list[DifferencePosition] = []
     cards: list[DifferenceCard] = []
     step_images: list[tuple[str, Image.Image]] = [("step_00_source", image.copy())]
+    mode_counts = {"brightness": 0, "color": 0, "flip": 0}
 
     for idx in range(num_differences):
-        box_w = rng.randint(min_side, max_side)
-        box_h = rng.randint(min_side, max_side)
-
-        x = rng.randint(0, max(0, width - box_w))
-        y = rng.randint(0, max(0, height - box_h))
+        x, y, box_w, box_h, region_score, region_features = _select_edit_region(
+            image=edited,
+            rng=rng,
+            min_side=min_side,
+            max_side=max_side,
+            min_region_score=profile["min_region_score"],
+            photo_mode=photo_mode,
+        )
 
         region = edited.crop((x, y, x + box_w, y + box_h))
         max_attempts = IMPROVEMENT_ATTEMPTS[difficulty]
@@ -199,10 +314,10 @@ def generate_differences(
         chosen_attempts = 1
         best_candidate_score = -1.0
 
-        preferred_mode = rng.choice(["brightness", "color", "flip"])
         strength_scale = profile["initial_strength"]
 
         for attempt in range(1, max_attempts + 1):
+            preferred_mode = _choose_edit_mode(rng, mode_counts=mode_counts, photo_mode=photo_mode)
             candidate_region, edit_type, edit_strength = apply_random_edit(
                 region=region,
                 rng=rng,
@@ -327,6 +442,9 @@ def generate_differences(
             _passes_quality_gate(profile, best_metrics, best_mask_coverage, photo_mode=photo_mode)
         )
         score_breakdown["photo_mode"] = float(photo_mode)
+        score_breakdown["region_score"] = region_score
+        score_breakdown["min_region_score"] = float(profile["min_region_score"])
+        score_breakdown.update(region_features)
         cards.append(
             DifferenceCard(
                 index=idx,
@@ -339,6 +457,9 @@ def generate_differences(
                 score_breakdown=score_breakdown,
             )
         )
+
+        if best_mode in mode_counts:
+            mode_counts[best_mode] += 1
 
         cx = x + box_w // 2
         cy = y + box_h // 2

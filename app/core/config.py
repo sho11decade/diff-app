@@ -39,6 +39,7 @@ DIFFICULTY_PROFILES: dict[str, dict[str, float]] = {
 		"min_visible_change": _get_float("DIFF_EASY_MIN_VISIBLE_CHANGE", 0.10),
 		"max_visible_change": _get_float("DIFF_EASY_MAX_VISIBLE_CHANGE", 0.28),
 		"min_mask_coverage": _get_float("DIFF_EASY_MIN_MASK_COVERAGE", 0.34),
+		"min_region_score": _get_float("DIFF_EASY_MIN_REGION_SCORE", 0.28),
 	},
 	"medium": {
 		"size_multiplier": _get_float("DIFF_MEDIUM_SIZE_MULTIPLIER", 1.05),
@@ -49,6 +50,7 @@ DIFFICULTY_PROFILES: dict[str, dict[str, float]] = {
 		"min_visible_change": _get_float("DIFF_MEDIUM_MIN_VISIBLE_CHANGE", 0.08),
 		"max_visible_change": _get_float("DIFF_MEDIUM_MAX_VISIBLE_CHANGE", 0.24),
 		"min_mask_coverage": _get_float("DIFF_MEDIUM_MIN_MASK_COVERAGE", 0.30),
+		"min_region_score": _get_float("DIFF_MEDIUM_MIN_REGION_SCORE", 0.36),
 	},
 	"hard": {
 		"size_multiplier": _get_float("DIFF_HARD_SIZE_MULTIPLIER", 0.95),
@@ -59,6 +61,7 @@ DIFFICULTY_PROFILES: dict[str, dict[str, float]] = {
 		"min_visible_change": _get_float("DIFF_HARD_MIN_VISIBLE_CHANGE", 0.06),
 		"max_visible_change": _get_float("DIFF_HARD_MAX_VISIBLE_CHANGE", 0.20),
 		"min_mask_coverage": _get_float("DIFF_HARD_MIN_MASK_COVERAGE", 0.26),
+		"min_region_score": _get_float("DIFF_HARD_MIN_REGION_SCORE", 0.42),
 	},
 }
 
