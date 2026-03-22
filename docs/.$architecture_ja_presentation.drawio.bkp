@@ -1,0 +1,75 @@
+<mxfile host="65bd71144e">
+    <diagram id="diff-app-ja-architecture" name="Diff App アーキテクチャ（日本語）">
+        <mxGraphModel dx="1379" dy="820" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1920" pageHeight="1080" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="lane_client" value="1. 利用者・フロント層" style="swimlane;html=1;rounded=1;arcSize=8;strokeWidth=1;fillColor=#f5f5f5;strokeColor=#666666;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="30" y="95" width="360" height="330" as="geometry"/>
+                </mxCell>
+                <mxCell id="client_browser" value="ブラウザ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="lane_client" vertex="1">
+                    <mxGeometry x="20" y="40" width="130" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="client_demo" value="デモUI（HTMX）&#xa;- 画像アップロード・プレビュー&#xa;- パラメータ指定&#xa;- クリックゲーム" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" parent="lane_client" vertex="1">
+                    <mxGeometry x="165" y="40" width="175" height="120" as="geometry"/>
+                </mxCell>
+                <mxCell id="client_api" value="API利用（研究/運用）&#xa;POST /generate&#xa;GET /experiments/{trace_id}" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" parent="lane_client" vertex="1">
+                    <mxGeometry x="20" y="185" width="320" height="95" as="geometry"/>
+                </mxCell>
+                <mxCell id="lane_app" value="2. アプリケーション層（FastAPI）" style="swimlane;html=1;rounded=1;arcSize=8;strokeWidth=1;fillColor=#f8f9fa;strokeColor=#666666;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="420" y="95" width="760" height="675" as="geometry"/>
+                </mxCell>
+                <mxCell id="app_factory" value="app_factory.py&#xa;アプリ初期化&#xa;Router登録 / 静的配信" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" parent="lane_app" vertex="1">
+                    <mxGeometry x="20" y="40" width="220" height="96" as="geometry"/>
+                </mxCell>
+                <mxCell id="router_demo" value="demo.py&#xa;GET /demo&#xa;POST /demo/process" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" parent="lane_app" vertex="1">
+                    <mxGeometry x="260" y="40" width="210" height="96" as="geometry"/>
+                </mxCell>
+                <mxCell id="router_generate" value="generate.py&#xa;POST /generate&#xa;GET /health&#xa;GET /experiments/{trace_id}" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="lane_app" vertex="1">
+                    <mxGeometry x="490" y="40" width="240" height="96" as="geometry"/>
+                </mxCell>
+                <mxCell id="security" value="core/security.py&#xa;API Key検証&#xa;レート制限" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" parent="lane_app" vertex="1">
+                    <mxGeometry x="20" y="165" width="220" height="86" as="geometry"/>
+                </mxCell>
+                <mxCell id="config" value="core/config.py&#xa;難易度プロファイル&#xa;閾値の環境変数化" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" parent="lane_app" vertex="1">
+                    <mxGeometry x="20" y="270" width="220" height="96" as="geometry"/>
+                </mxCell>
+                <mxCell id="generator" value="pipeline/generator.py&#xa;差分生成オーケストレーション&#xa;- 領域選択（背景回避）&#xa;- 密集防止（中心距離 + IoU制約）&#xa;- 品質ゲート + 自己改善 + フォールバック" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" parent="lane_app" vertex="1">
+                    <mxGeometry x="260" y="165" width="470" height="140" as="geometry"/>
+                </mxCell>
+                <mxCell id="editors" value="pipeline/editors.py&#xa;編集操作&#xa;brightness / color / contrast / shift / flip&#xa;不定形マスク + フェザーブレンド" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" parent="lane_app" vertex="1">
+                    <mxGeometry x="260" y="330" width="470" height="110" as="geometry"/>
+                </mxCell>
+                <mxCell id="naturalness" value="pipeline/naturalness.py&#xa;自然さ評価&#xa;mean_abs_diff + edge_delta + 合成スコア" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" parent="lane_app" vertex="1">
+                    <mxGeometry x="260" y="460" width="470" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="schema" value="api/schemas.py&#xa;DifferencePosition / DifferenceCard&#xa;説明可能なレスポンス定義" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" parent="lane_app" vertex="1">
+                    <mxGeometry x="260" y="565" width="470" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="flow1" value="① UI操作" style="endArrow=classic;html=1;strokeWidth=1;" parent="1" source="client_demo" target="router_demo" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="flow2" value="② API呼出" style="endArrow=classic;html=1;strokeWidth=1;" parent="1" source="client_api" target="router_generate" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="640" y="240"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="flow3" value="③ 生成要求" style="endArrow=classic;html=1;strokeWidth=1;" parent="1" source="router_generate" target="generator" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="flow4" value="④ 差分編集" style="endArrow=classic;html=1;strokeWidth=1;" parent="1" source="generator" target="editors" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="flow5" value="⑤ 自然さ評価" style="endArrow=classic;html=1;strokeWidth=1;" parent="1" source="generator" target="naturalness" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="1030" y="490"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>

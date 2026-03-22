@@ -1,5 +1,6 @@
 experiments/
 nohup.out
+evaluation/
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
@@ -218,3 +219,8 @@ __marimo__/
 .streamlit/secrets.toml
 nohup.out
 Scanned_20260321-2243.jpg
+docs/SAGUS論文.pdf
+docs/SAGUS論文.html
+docs/SAGUS論文.txt
+docs/architecture_ja_presentation.drawio
+.gitignore
