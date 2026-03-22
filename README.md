@@ -200,6 +200,12 @@ experiments/
 	- 英語版: `docs/architecture.drawio`
 	- 日本語・研究発表向け: `docs/architecture_ja_presentation.drawio`
 
+## 使用技術一覧
+- 技術スタックの整理は `docs/使用技術一覧.md` を参照。
+
+## 処理概要フローチャート
+- 処理全体の流れは `docs/処理概要フローチャート.drawio` を参照。
+
 ## 実装計画
 - 具体的なマイルストーン・WBS・完了条件は `docs/実装計画.md` を参照。
 

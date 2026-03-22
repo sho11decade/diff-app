@@ -1,0 +1,134 @@
+<mxfile host="65bd71144e">
+    <diagram id="processing-overview-flow" name="処理概要フローチャート">
+        <mxGraphModel dx="934" dy="486" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1200" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="title" value="間違い探し生成システム 処理概要フローチャート" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=22;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="40" y="20" width="700" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="start" value="開始" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="80" y="90" width="120" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="input" value="画像入力 + パラメータ受信&#xa;POST /generate" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+                    <mxGeometry x="60" y="170" width="190" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="validate" value="入力検証&#xa;(形式/サイズ/APIキー)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" parent="1" vertex="1">
+                    <mxGeometry x="60" y="280" width="190" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="valid_decision" value="検証OK?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" parent="1" vertex="1">
+                    <mxGeometry x="80" y="390" width="150" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="error" value="エラーレスポンス返却&#xa;(400/401/422)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" parent="1" vertex="1">
+                    <mxGeometry x="220" y="430" width="210" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="prepare" value="前処理&#xa;画像ロード・seed設定・trace初期化" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" parent="1" vertex="1">
+                    <mxGeometry x="60" y="520" width="260" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="loop" value="差分ごとの生成ループ&#xa;(num_differences 回)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="370" y="170" width="240" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="region" value="領域選択&#xa;背景回避 + 前景スコア(任意Seg)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" parent="1" vertex="1">
+                    <mxGeometry x="370" y="280" width="240" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="edit" value="編集候補生成&#xa;brightness/color/contrast/shift/flip" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" parent="1" vertex="1">
+                    <mxGeometry x="370" y="390" width="240" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="score" value="自然さ評価 + 品質ゲート&#xa;(mean_abs_diff, edge_delta など)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" parent="1" vertex="1">
+                    <mxGeometry x="370" y="500" width="240" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="quality_decision" value="品質ゲート通過?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" parent="1" vertex="1">
+                    <mxGeometry x="410" y="625" width="160" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="fallback" value="フォールバック編集&#xa;(visible_contrast / visible_tint)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" parent="1" vertex="1">
+                    <mxGeometry x="650" y="630" width="250" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="apply" value="差分適用 + カード記録&#xa;(位置・編集種別・スコア)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" parent="1" vertex="1">
+                    <mxGeometry x="370" y="750" width="240" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="loop_decision" value="全差分完了?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" parent="1" vertex="1">
+                    <mxGeometry x="410" y="870" width="160" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="compose" value="最終画像生成&#xa;puzzle / answer" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+                    <mxGeometry x="970" y="280" width="220" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="artifact" value="アーティファクト保存&#xa;source, puzzle, answer, params, trace" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;" parent="1" vertex="1">
+                    <mxGeometry x="970" y="410" width="220" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="response" value="レスポンス返却&#xa;base64画像 + positions + trace情報" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+                    <mxGeometry x="970" y="540" width="220" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="end" value="終了" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="1020" y="680" width="120" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="e1" value="" style="endArrow=classic;html=1;strokeWidth=1;" parent="1" source="start" target="input" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e2" value="" style="endArrow=classic;html=1;strokeWidth=1;" parent="1" source="input" target="validate" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e3" value="" style="endArrow=classic;html=1;strokeWidth=1;" parent="1" source="validate" target="valid_decision" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e4" value="No" style="endArrow=classic;html=1;strokeWidth=1;" parent="1" source="valid_decision" target="error" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e5" value="Yes" style="endArrow=classic;html=1;strokeWidth=1;" parent="1" source="valid_decision" target="prepare" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e6" value="" style="endArrow=classic;html=1;strokeWidth=1;" parent="1" source="prepare" target="loop" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e7" value="" style="endArrow=classic;html=1;strokeWidth=1;" parent="1" source="loop" target="region" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e8" value="" style="endArrow=classic;html=1;strokeWidth=1;" parent="1" source="region" target="edit" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e9" value="" style="endArrow=classic;html=1;strokeWidth=1;" parent="1" source="edit" target="score" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e10" value="" style="endArrow=classic;html=1;strokeWidth=1;" parent="1" source="score" target="quality_decision" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e11" value="No" style="endArrow=classic;html=1;strokeWidth=1;" parent="1" source="quality_decision" target="fallback" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e12" value="Yes" style="endArrow=classic;html=1;strokeWidth=1;" parent="1" source="quality_decision" target="apply" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e13" value="" style="endArrow=classic;html=1;strokeWidth=1;" parent="1" source="fallback" target="apply" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e14" value="" style="endArrow=classic;html=1;strokeWidth=1;" parent="1" source="apply" target="loop_decision" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e15" value="No" style="endArrow=classic;html=1;strokeWidth=1;" parent="1" source="loop_decision" target="loop" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="260" y="915"/>
+                            <mxPoint x="260" y="210"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="e16" value="Yes" style="endArrow=classic;html=1;strokeWidth=1;" parent="1" source="loop_decision" target="compose" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="760" y="915"/>
+                            <mxPoint x="760" y="320"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="e17" value="" style="endArrow=classic;html=1;strokeWidth=1;" parent="1" source="compose" target="artifact" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e18" value="" style="endArrow=classic;html=1;strokeWidth=1;" parent="1" source="artifact" target="response" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e19" value="" style="endArrow=classic;html=1;strokeWidth=1;" parent="1" source="response" target="end" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>
