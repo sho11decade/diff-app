@@ -169,6 +169,80 @@ input, select {
   border: 1px solid var(--line);
 }
 
+.muted {
+  color: var(--sub);
+}
+
+.step-viewer {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+  background: #f7faf3;
+}
+
+.step-viewer img {
+  width: 100%;
+  display: block;
+  max-height: 520px;
+  object-fit: contain;
+  background: #eef4ea;
+}
+
+.step-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border-top: 1px solid var(--line);
+  background: #fcfdf9;
+}
+
+#stepIndex {
+  min-width: 220px;
+  text-align: center;
+  color: var(--sub);
+  font-size: 14px;
+}
+
+.step-thumbs {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 8px;
+}
+
+.step-thumb {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: white;
+  padding: 6px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.step-thumb img {
+  width: 100%;
+  border-radius: 8px;
+  border: 1px solid #dfe5d5;
+}
+
+.step-thumb span {
+  font-size: 12px;
+  color: var(--sub);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.step-thumb.active {
+  border-color: var(--accent-2);
+  box-shadow: 0 0 0 1px var(--accent-2);
+}
+
 .pair-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

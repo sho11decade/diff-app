@@ -6,7 +6,12 @@ from fastapi import APIRouter, File, Form, UploadFile
 from fastapi import HTTPException, status
 from fastapi.responses import FileResponse, HTMLResponse
 
-from app.pipeline.generator import generate_differences, load_image, validate_difficulty
+from app.pipeline.generator import (
+    generate_differences,
+    image_to_base64_png,
+    load_image,
+    validate_difficulty,
+)
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 DEMO_DIR = ROOT_DIR / "demo"
@@ -69,6 +74,13 @@ async def demo_process(
         "puzzle_image_base64": output.puzzle_image_base64,
         "answer_image_base64": output.answer_image_base64,
         "positions": [position.model_dump() for position in output.positions],
+        "step_images": [
+            {
+                "name": step_name,
+                "image_base64": image_to_base64_png(step_image),
+            }
+            for step_name, step_image in output.step_images
+        ],
     }
 
     html = RESULT_HTML.read_text(encoding="utf-8")

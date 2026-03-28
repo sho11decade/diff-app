@@ -17,10 +17,17 @@
     const stageRight = document.getElementById('stage-right');
     const progress = document.getElementById('progress');
     const meta = document.getElementById('meta');
+    const stepMeta = document.getElementById('stepMeta');
+    const stepImage = document.getElementById('stepImage');
+    const stepIndex = document.getElementById('stepIndex');
+    const stepPrev = document.getElementById('stepPrev');
+    const stepNext = document.getElementById('stepNext');
+    const stepThumbs = document.getElementById('stepThumbs');
 
     if (
       !dataEl || !sourceImage || !puzzleImage || !answerImage || !downloadPuzzle || !downloadAnswer ||
-      !markersLeft || !markersRight || !stageLeft || !stageRight || !progress || !meta
+      !markersLeft || !markersRight || !stageLeft || !stageRight || !progress || !meta ||
+      !stepMeta || !stepImage || !stepIndex || !stepPrev || !stepNext || !stepThumbs
     ) {
       return;
     }
@@ -49,6 +56,71 @@
     downloadAnswer.href = answerSrc;
 
     meta.textContent = `difficulty=${payload.difficulty} / differences=${payload.num_differences} / time=${payload.processing_time_ms}ms`;
+
+    const steps = Array.isArray(payload.step_images) ? payload.step_images : [];
+    let currentStep = 0;
+
+    function normalizeStepName(name) {
+      if (!name) return 'step';
+      if (name === 'step_00_source') return '0: source';
+      return name.replace('step_', '').replaceAll('_', ' ');
+    }
+
+    function renderStep() {
+      if (!steps.length) {
+        stepMeta.textContent = '処理過程データはありません。';
+        stepImage.removeAttribute('src');
+        stepIndex.textContent = '';
+        stepPrev.disabled = true;
+        stepNext.disabled = true;
+        return;
+      }
+
+      currentStep = Math.max(0, Math.min(currentStep, steps.length - 1));
+      const s = steps[currentStep];
+      stepImage.src = `data:image/png;base64,${s.image_base64}`;
+      stepImage.alt = s.name;
+      stepMeta.textContent = 'step_00_source は処理開始時点です。以降は差分適用後の状態を示します。';
+      stepIndex.textContent = `${currentStep + 1} / ${steps.length} (${normalizeStepName(s.name)})`;
+      stepPrev.disabled = currentStep === 0;
+      stepNext.disabled = currentStep === steps.length - 1;
+
+      const thumbButtons = stepThumbs.querySelectorAll('button[data-step-idx]');
+      thumbButtons.forEach((btn) => {
+        const idx = Number(btn.dataset.stepIdx);
+        btn.classList.toggle('active', idx === currentStep);
+      });
+    }
+
+    function buildStepThumbs() {
+      stepThumbs.innerHTML = '';
+      if (!steps.length) {
+        return;
+      }
+      steps.forEach((s, idx) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'step-thumb';
+        btn.dataset.stepIdx = String(idx);
+        btn.title = s.name;
+
+        const img = document.createElement('img');
+        img.alt = s.name;
+        img.src = `data:image/png;base64,${s.image_base64}`;
+        btn.appendChild(img);
+
+        const label = document.createElement('span');
+        label.textContent = normalizeStepName(s.name);
+        btn.appendChild(label);
+
+        btn.addEventListener('click', () => {
+          currentStep = idx;
+          renderStep();
+        });
+
+        stepThumbs.appendChild(btn);
+      });
+    }
 
     const found = new Set();
 
@@ -136,6 +208,18 @@
       );
     });
 
+    stepPrev.addEventListener('click', () => {
+      currentStep -= 1;
+      renderStep();
+    });
+
+    stepNext.addEventListener('click', () => {
+      currentStep += 1;
+      renderStep();
+    });
+
+    buildStepThumbs();
+    renderStep();
     updateProgress();
   }
 

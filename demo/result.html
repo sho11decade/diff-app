@@ -32,6 +32,22 @@
     <img id="answerImage" alt="answer">
   </section>
 
+  <section class="panel process-steps">
+    <h2>処理過程（ステップ表示）</h2>
+    <p id="stepMeta" class="muted"></p>
+
+    <div class="step-viewer">
+      <img id="stepImage" alt="process-step">
+      <div class="step-controls">
+        <button id="stepPrev" type="button" class="btn outline">前へ</button>
+        <span id="stepIndex"></span>
+        <button id="stepNext" type="button" class="btn outline">次へ</button>
+      </div>
+    </div>
+
+    <div id="stepThumbs" class="step-thumbs"></div>
+  </section>
+
   <script id="result-data" type="application/json">__RESULT_JSON__</script>
   <script src="/demo-assets/result-v2.js"></script>
 </main>
