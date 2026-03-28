@@ -23,11 +23,17 @@
     const stepPrev = document.getElementById('stepPrev');
     const stepNext = document.getElementById('stepNext');
     const stepThumbs = document.getElementById('stepThumbs');
+    const selectionStage = document.getElementById('selectionStage');
+    const selectionSourceImage = document.getElementById('selectionSourceImage');
+    const selectionOverlay = document.getElementById('selectionOverlay');
+    const selectionSummary = document.getElementById('selectionSummary');
+    const selectionList = document.getElementById('selectionList');
 
     if (
       !dataEl || !sourceImage || !puzzleImage || !answerImage || !downloadPuzzle || !downloadAnswer ||
       !markersLeft || !markersRight || !stageLeft || !stageRight || !progress || !meta ||
-      !stepMeta || !stepImage || !stepIndex || !stepPrev || !stepNext || !stepThumbs
+      !stepMeta || !stepImage || !stepIndex || !stepPrev || !stepNext || !stepThumbs ||
+      !selectionStage || !selectionSourceImage || !selectionOverlay || !selectionSummary || !selectionList
     ) {
       return;
     }
@@ -52,12 +58,14 @@
     sourceImage.src = sourceSrc;
     puzzleImage.src = puzzleSrc;
     answerImage.src = answerSrc;
+    selectionSourceImage.src = sourceSrc;
     downloadPuzzle.href = puzzleSrc;
     downloadAnswer.href = answerSrc;
 
     meta.textContent = `difficulty=${payload.difficulty} / differences=${payload.num_differences} / time=${payload.processing_time_ms}ms`;
 
     const steps = Array.isArray(payload.step_images) ? payload.step_images : [];
+    const cards = Array.isArray(payload.difference_cards) ? payload.difference_cards : [];
     let currentStep = 0;
 
     function normalizeStepName(name) {
@@ -119,6 +127,81 @@
         });
 
         stepThumbs.appendChild(btn);
+      });
+    }
+
+    function clearSelectionOverlay() {
+      selectionOverlay.innerHTML = '';
+    }
+
+    function drawSelectionBox(pos, active) {
+      const rect = selectionSourceImage.getBoundingClientRect();
+      if (!rect.width || !rect.height) {
+        return;
+      }
+
+      const box = document.createElement('div');
+      box.className = `selection-box${active ? ' active' : ''}`;
+      const sx = pos.x * (rect.width / payload.image_width);
+      const sy = pos.y * (rect.height / payload.image_height);
+      const sw = pos.width * (rect.width / payload.image_width);
+      const sh = pos.height * (rect.height / payload.image_height);
+      box.style.left = `${sx}px`;
+      box.style.top = `${sy}px`;
+      box.style.width = `${Math.max(8, sw)}px`;
+      box.style.height = `${Math.max(8, sh)}px`;
+      selectionOverlay.appendChild(box);
+    }
+
+    function getCardMetrics(card) {
+      const sb = (card && card.score_breakdown) ? card.score_breakdown : {};
+      return {
+        regionScore: Number(sb.region_score ?? 0),
+        bgPenalty: Number(sb.region_background_penalty ?? 0),
+        naturalness: Number(card?.naturalness_score ?? 0),
+        attempts: Number(card?.improvement_attempts ?? 0),
+        editType: String(card?.edit_type ?? '-'),
+      };
+    }
+
+    function renderSelectionList(activeIndex = 0) {
+      selectionList.innerHTML = '';
+      if (!payload.positions.length) {
+        selectionSummary.textContent = '選定データがありません。';
+        clearSelectionOverlay();
+        return;
+      }
+
+      selectionSummary.textContent = `差分数: ${payload.positions.length} / クリックで採用領域の詳細を表示`;
+      const rectReady = selectionSourceImage.complete;
+      if (rectReady) {
+        clearSelectionOverlay();
+        payload.positions.forEach((pos, idx) => drawSelectionBox(pos, idx === activeIndex));
+      }
+
+      payload.positions.forEach((pos, idx) => {
+        const card = cards[idx] || null;
+        const m = getCardMetrics(card);
+
+        const item = document.createElement('button');
+        item.type = 'button';
+        item.className = `selection-item${idx === activeIndex ? ' active' : ''}`;
+
+        const title = document.createElement('div');
+        title.className = 'selection-item-title';
+        title.textContent = `#${idx + 1} ${m.editType}`;
+        item.appendChild(title);
+
+        const sub = document.createElement('div');
+        sub.className = 'selection-item-sub';
+        sub.textContent = `region_score=${m.regionScore.toFixed(3)} / bg_penalty=${m.bgPenalty.toFixed(3)} / naturalness=${m.naturalness.toFixed(3)} / attempts=${m.attempts}`;
+        item.appendChild(sub);
+
+        item.addEventListener('click', () => {
+          renderSelectionList(idx);
+        });
+
+        selectionList.appendChild(item);
       });
     }
 
@@ -216,6 +299,21 @@
     stepNext.addEventListener('click', () => {
       currentStep += 1;
       renderStep();
+    });
+
+    const onSelectionImageReady = () => renderSelectionList(0);
+    if (selectionSourceImage.complete) {
+      onSelectionImageReady();
+    } else {
+      selectionSourceImage.addEventListener('load', onSelectionImageReady, { once: true });
+    }
+
+    window.addEventListener('resize', () => {
+      const active = selectionList.querySelector('.selection-item.active');
+      const activeIndex = active
+        ? Array.from(selectionList.querySelectorAll('.selection-item')).indexOf(active)
+        : 0;
+      renderSelectionList(Math.max(0, activeIndex));
     });
 
     buildStepThumbs();

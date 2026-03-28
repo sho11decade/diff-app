@@ -48,6 +48,24 @@
     <div id="stepThumbs" class="step-thumbs"></div>
   </section>
 
+  <section class="panel selection-focus">
+    <h2>間違い生成箇所の選定プロセス可視化</h2>
+    <p class="muted">各差分で最終採用された領域と、選定時の主要スコア（region_score / background_penalty / naturalness）を確認できます。</p>
+
+    <div class="selection-grid">
+      <div class="selection-stage-wrap">
+        <div class="stage selection-stage" id="selectionStage">
+          <img id="selectionSourceImage" alt="selection-source">
+          <div id="selectionOverlay" class="markers"></div>
+        </div>
+      </div>
+      <div class="selection-info">
+        <p id="selectionSummary" class="muted"></p>
+        <div id="selectionList" class="selection-list"></div>
+      </div>
+    </div>
+  </section>
+
   <script id="result-data" type="application/json">__RESULT_JSON__</script>
   <script src="/demo-assets/result-v2.js"></script>
 </main>

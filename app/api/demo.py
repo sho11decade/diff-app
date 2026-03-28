@@ -74,6 +74,7 @@ async def demo_process(
         "puzzle_image_base64": output.puzzle_image_base64,
         "answer_image_base64": output.answer_image_base64,
         "positions": [position.model_dump() for position in output.positions],
+        "difference_cards": [card.model_dump() for card in output.difference_cards],
         "step_images": [
             {
                 "name": step_name,
